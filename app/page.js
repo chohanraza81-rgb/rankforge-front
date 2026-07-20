@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 export default function Home() {
   const [keyword, setKeyword] = useState('');
@@ -7,7 +7,16 @@ export default function Home() {
   const [progress, setProgress] = useState(0);
   const [report, setReport] = useState(null);
   const [error, setError] = useState('');
+  const [statusMessage, setStatusMessage] = useState('');
   const intervalRef = useRef(null);
+  const startTimeRef = useRef(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
 
   const handleGenerate = async () => {
     if (!keyword.trim()) {
@@ -20,12 +29,15 @@ export default function Home() {
     setProgress(0);
     setReport(null);
     setError('');
+    setStatusMessage('⏳ Starting analysis...');
+    startTimeRef.current = Date.now();
+
     if (intervalRef.current) clearInterval(intervalRef.current);
 
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL;
       if (!baseUrl) {
-        setError('NEXT_PUBLIC_API_URL is not set in environment variables.');
+        setError('NEXT_PUBLIC_API_URL is not set.');
         setLoading(false);
         return;
       }
@@ -48,48 +60,70 @@ export default function Home() {
       if (data.cached) {
         setReport(data.data);
         setProgress(100);
+        setStatusMessage('✅ Report ready from cache!');
         setLoading(false);
         return;
       }
 
-      // 3. If not cached, start polling for status
       const reportId = data.reportId;
+      setStatusMessage('🔄 Fetching competitor data... (Step 1/3)');
+
+      // 3. Polling with longer timeout (5 minutes max)
       let pollCount = 0;
-      const maxPolls = 30; // 30 * 3 seconds = 90 seconds max
+      const maxPolls = 120; // 120 * 5 seconds = 10 minutes max
+      let lastProgress = 0;
 
       intervalRef.current = setInterval(async () => {
         pollCount++;
+        
+        // Update progress (simulate)
+        if (pollCount < 20) {
+          // Step 1: SerpAPI (0-40%)
+          const newProgress = Math.min(pollCount * 2, 40);
+          setProgress(newProgress);
+          if (pollCount === 5) setStatusMessage('🔍 Analyzing competitor pages... (Step 2/3)');
+        } else if (pollCount < 40) {
+          // Step 2: Gemini Processing (40-85%)
+          const newProgress = Math.min(40 + (pollCount - 20) * 2.25, 85);
+          setProgress(newProgress);
+          if (pollCount === 25) setStatusMessage('🧠 Generating AI insights... (Step 3/3)');
+        } else {
+          // Step 3: Almost done (85-95%)
+          setProgress(Math.min(85 + (pollCount - 40) * 0.5, 95));
+          setStatusMessage('⏳ Finalizing report...');
+        }
+
         try {
           const statusRes = await fetch(`${baseUrl}/report/${reportId}`);
           if (!statusRes.ok) throw new Error('Status check failed');
 
           const statusData = await statusRes.json();
 
-          // Update progress (simulate, since backend isn't sending progress via SSE in this sync version)
-          setProgress((prev) => Math.min(prev + 3, 90));
-
           if (statusData.status === 'completed') {
             setReport(statusData.data);
             setProgress(100);
+            setStatusMessage('✅ Report ready!');
             setLoading(false);
             clearInterval(intervalRef.current);
             intervalRef.current = null;
           } else if (statusData.status === 'failed') {
-            setError('Report generation failed. Please try again.');
+            const errorMsg = statusData.errorMessage || 'Report generation failed. Please try again.';
+            setError(`❌ ${errorMsg}`);
             setLoading(false);
             clearInterval(intervalRef.current);
             intervalRef.current = null;
           } else if (pollCount >= maxPolls) {
-            setError('Generation is taking too long. Please try again later.');
+            // Timeout after 10 minutes
+            setError('⏰ Generation is taking too long (over 10 minutes). Please try again with a different keyword.');
             setLoading(false);
             clearInterval(intervalRef.current);
             intervalRef.current = null;
           }
         } catch (err) {
           console.error('Polling error:', err);
-          // Don't stop loading immediately, let it retry
+          // Don't stop loading, let it retry
         }
-      }, 3000);
+      }, 5000); // 5 seconds interval
 
     } catch (err) {
       setError(err.message || 'Something went wrong. Check if backend is running.');
@@ -142,6 +176,13 @@ export default function Home() {
             )}
           </button>
         </div>
+
+        {/* Status Message */}
+        {statusMessage && loading && (
+          <div className="mb-3 text-sm text-cyan-300 text-center">
+            {statusMessage}
+          </div>
+        )}
 
         {/* Error Display */}
         {error && (
@@ -199,30 +240,34 @@ export default function Home() {
             </div>
 
             {/* Missing Headings */}
-            <div className="bg-white/5 p-5 rounded-2xl border border-white/10 backdrop-blur-sm">
-              <h3 className="font-bold text-purple-300 flex items-center gap-2 mb-3">
-                📌 Missing Headings (Add these to your content)
-              </h3>
-              <ul className="list-disc pl-5 space-y-1.5 text-gray-300 text-sm">
-                {report.missing_headings?.map((h, i) => (
-                  <li key={i}>{h}</li>
-                )) || <li className="text-gray-500">No headings found</li>}
-              </ul>
-            </div>
+            {report.missing_headings && report.missing_headings.length > 0 && (
+              <div className="bg-white/5 p-5 rounded-2xl border border-white/10 backdrop-blur-sm">
+                <h3 className="font-bold text-purple-300 flex items-center gap-2 mb-3">
+                  📌 Missing Headings (Add these to your content)
+                </h3>
+                <ul className="list-disc pl-5 space-y-1.5 text-gray-300 text-sm">
+                  {report.missing_headings.map((h, i) => (
+                    <li key={i}>{h}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {/* FAQ Questions */}
-            <div className="bg-white/5 p-5 rounded-2xl border border-white/10 backdrop-blur-sm">
-              <h3 className="font-bold text-yellow-300 flex items-center gap-2 mb-3">
-                ❓ FAQ Schema Ideas (Answer these in your post)
-              </h3>
-              <ul className="list-disc pl-5 space-y-1.5 text-gray-300 text-sm">
-                {report.faq_questions?.map((q, i) => (
-                  <li key={i}>{q}</li>
-                )) || <li className="text-gray-500">No FAQs found</li>}
-              </ul>
-            </div>
+            {report.faq_questions && report.faq_questions.length > 0 && (
+              <div className="bg-white/5 p-5 rounded-2xl border border-white/10 backdrop-blur-sm">
+                <h3 className="font-bold text-yellow-300 flex items-center gap-2 mb-3">
+                  ❓ FAQ Schema Ideas (Answer these in your post)
+                </h3>
+                <ul className="list-disc pl-5 space-y-1.5 text-gray-300 text-sm">
+                  {report.faq_questions.map((q, i) => (
+                    <li key={i}>{q}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-            {/* Competitor Battle Table (Premium Feature) */}
+            {/* Competitor Battle Table */}
             {report.competitor_table && report.competitor_table.length > 0 && (
               <div className="bg-white/5 p-5 rounded-2xl border border-white/10 backdrop-blur-sm overflow-x-auto">
                 <h3 className="font-bold text-orange-300 flex items-center gap-2 mb-3">
@@ -250,25 +295,27 @@ export default function Home() {
             )}
 
             {/* Authority Links */}
-            <div className="bg-white/5 p-5 rounded-2xl border border-white/10 backdrop-blur-sm">
-              <h3 className="font-bold text-blue-300 flex items-center gap-2 mb-3">
-                🔗 Authority Citations (Add outbound links to these)
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {report.authority_links?.map((l, i) => (
-                  <a
-                    key={i}
-                    href={l}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="text-xs bg-blue-500/20 hover:bg-blue-500/40 px-3 py-1.5 rounded-full transition truncate max-w-[250px] border border-blue-500/20"
-                    title={l}
-                  >
-                    {l.replace(/^https?:\/\//, '').replace(/\/.*$/, '').slice(0, 30)}
-                  </a>
-                )) || <span className="text-gray-500 text-sm">No authority links found</span>}
+            {report.authority_links && report.authority_links.length > 0 && (
+              <div className="bg-white/5 p-5 rounded-2xl border border-white/10 backdrop-blur-sm">
+                <h3 className="font-bold text-blue-300 flex items-center gap-2 mb-3">
+                  🔗 Authority Citations (Add outbound links to these)
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {report.authority_links.map((l, i) => (
+                    <a
+                      key={i}
+                      href={l}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="text-xs bg-blue-500/20 hover:bg-blue-500/40 px-3 py-1.5 rounded-full transition truncate max-w-[250px] border border-blue-500/20"
+                      title={l}
+                    >
+                      {l.replace(/^https?:\/\//, '').replace(/\/.*$/, '').slice(0, 30)}
+                    </a>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Disclaimer */}
             <p className="text-xs text-gray-500 text-center pt-4 border-t border-white/5">
@@ -287,7 +334,6 @@ export default function Home() {
         )}
       </div>
 
-      {/* Tailwind CSS Animation (Add to global.css if needed, but works inline with style tag) */}
       <style jsx>{`
         @keyframes fade-in {
           from { opacity: 0; transform: translateY(10px); }
