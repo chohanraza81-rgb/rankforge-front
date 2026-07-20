@@ -1,222 +1,302 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Download, Copy, CheckCircle, Loader2, History } from 'lucide-react';
+import { useState, useRef } from 'react';
 
 export default function Home() {
   const [keyword, setKeyword] = useState('');
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [report, setReport] = useState(null);
-  const [history, setHistory] = useState([]);
-  const eventSourceRef = useRef(null);
-
-  // Fetch History on Load
-  useEffect(() => {
-    fetch('/api/history').then(res => res.json()).then(setHistory);
-  }, []);
+  const [error, setError] = useState('');
+  const intervalRef = useRef(null);
 
   const handleGenerate = async () => {
-    if (!keyword) return;
-    setLoading(true);
-    setProgress(0);
-    setReport(null);
-
-    // Close previous SSE if any
-    if (eventSourceRef.current) eventSourceRef.current.close();
-
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ keyword })
-    });
-    const data = await res.json();
-
-    if (data.cached) {
-      // Cache hit: Direct fetch
-      const cachedRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/report/${data.reportId}`);
-      const cachedData = await cachedRes.json();
-      setReport(cachedData.data);
-      setProgress(100);
-      setLoading(false);
+    if (!keyword.trim()) {
+      setError('Please enter a keyword.');
       return;
     }
 
-    // SSE Connection for Real-time Progress
-    const eventSource = new EventSource(`${process.env.NEXT_PUBLIC_API_URL}/stream/${data.reportId}`);
-    eventSourceRef.current = eventSource;
+    // Reset states
+    setLoading(true);
+    setProgress(0);
+    setReport(null);
+    setError('');
+    if (intervalRef.current) clearInterval(intervalRef.current);
 
-    eventSource.addEventListener('progress', (e) => {
-      const data = JSON.parse(e.data);
-      setProgress(data.progress);
-    });
-
-    eventSource.addEventListener('done', (e) => {
-      const data = JSON.parse(e.data);
-      if (data.status === 'completed') {
-        setReport(data.data);
-        // Add to history locally
-        setHistory(prev => [{ keyword, createdAt: new Date(), data: data.data }, ...prev]);
-      } else {
-        alert('Report generation failed. Please retry.');
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!baseUrl) {
+        setError('NEXT_PUBLIC_API_URL is not set in environment variables.');
+        setLoading(false);
+        return;
       }
+
+      // 1. Call Backend to generate report
+      const res = await fetch(`${baseUrl}/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keyword: keyword.trim() }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to start generation');
+      }
+
+      const data = await res.json();
+
+      // 2. If Cache hit, display immediately
+      if (data.cached) {
+        setReport(data.data);
+        setProgress(100);
+        setLoading(false);
+        return;
+      }
+
+      // 3. If not cached, start polling for status
+      const reportId = data.reportId;
+      let pollCount = 0;
+      const maxPolls = 30; // 30 * 3 seconds = 90 seconds max
+
+      intervalRef.current = setInterval(async () => {
+        pollCount++;
+        try {
+          const statusRes = await fetch(`${baseUrl}/report/${reportId}`);
+          if (!statusRes.ok) throw new Error('Status check failed');
+
+          const statusData = await statusRes.json();
+
+          // Update progress (simulate, since backend isn't sending progress via SSE in this sync version)
+          setProgress((prev) => Math.min(prev + 3, 90));
+
+          if (statusData.status === 'completed') {
+            setReport(statusData.data);
+            setProgress(100);
+            setLoading(false);
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          } else if (statusData.status === 'failed') {
+            setError('Report generation failed. Please try again.');
+            setLoading(false);
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          } else if (pollCount >= maxPolls) {
+            setError('Generation is taking too long. Please try again later.');
+            setLoading(false);
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+        } catch (err) {
+          console.error('Polling error:', err);
+          // Don't stop loading immediately, let it retry
+        }
+      }, 3000);
+
+    } catch (err) {
+      setError(err.message || 'Something went wrong. Check if backend is running.');
       setLoading(false);
-      eventSource.close();
-    });
-
-    eventSource.onerror = () => {
-      setLoading(false);
-      eventSource.close();
-    };
-  };
-
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    alert('Copied to clipboard!');
-  };
-
-  const downloadCSV = () => {
-    if (!report) return;
-    const headers = 'Missing Headings,FAQ Questions,Authority Links\n';
-    const rows = [
-      report.missing_headings?.join('; ') || '',
-      report.faq_questions?.join('; ') || '',
-      report.authority_links?.join('; ') || ''
-    ].join('\n');
-    const csv = headers + rows;
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `${keyword}-report.csv`; a.click();
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white flex">
-      {/* Sidebar */}
-      <div className="w-64 bg-black/30 backdrop-blur-xl p-6 border-r border-white/10 hidden md:block">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 text-transparent bg-clip-text">RankForge</h1>
-        <p className="text-xs text-gray-400 mt-1">Premium v2.0</p>
-        <div className="mt-10 space-y-4">
-          <div className="flex items-center gap-3 p-3 bg-purple-600/30 rounded-xl border border-purple-500">
-            <CheckCircle size={18} className="text-purple-400"/> Dashboard
-          </div>
-          <div className="flex items-center gap-3 p-3 opacity-50 hover:opacity-100 cursor-pointer">📊 History</div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white p-4 md:p-8">
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 text-transparent bg-clip-text inline-block">
+            RankForge
+          </h1>
+          <span className="ml-3 text-xs font-semibold bg-purple-500/30 text-purple-300 px-3 py-1 rounded-full border border-purple-500/50">
+            PREMIUM v2.0
+          </span>
+          <p className="text-gray-400 mt-2 text-sm md:text-base">
+            AI doesn't write. It analyzes competitors, finds gaps, and gives you the winning strategy.
+          </p>
         </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="flex-1 p-4 md:p-8 overflow-y-auto">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold mb-2">Content Intelligence Engine</h2>
-          <p className="text-gray-400 mb-6">AI doesn't write. It analyzes, compares, and gives you the edge.</p>
+        {/* Input Section */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <input
+            type="text"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
+            placeholder='Enter keyword (e.g., "best budget laptops 2025")'
+            className="flex-1 p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-400 transition"
+            disabled={loading}
+          />
+          <button
+            onClick={handleGenerate}
+            disabled={loading}
+            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105 transition-transform rounded-2xl font-bold shadow-lg shadow-purple-500/30 disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2 min-w-[160px]"
+          >
+            {loading ? (
+              <>
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Analyzing...
+              </>
+            ) : (
+              '🚀 Generate Brief'
+            )}
+          </button>
+        </div>
 
-          {/* Input Section */}
-          <div className="flex flex-col md:flex-row gap-4 mb-8">
-            <input
-              type="text"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              placeholder="Enter keyword (e.g., best budget phones 2025)"
-              className="flex-1 p-4 rounded-2xl bg-white/10 backdrop-blur border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-400"
-              disabled={loading}
-            />
-            <button
-              onClick={handleGenerate}
-              disabled={loading}
-              className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105 transition rounded-2xl font-bold shadow-lg shadow-purple-500/30 disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {loading ? <Loader2 className="animate-spin"/> : '🚀 Generate Brief'}
-            </button>
+        {/* Error Display */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-2xl text-red-300 text-sm">
+            ⚠️ {error}
           </div>
+        )}
 
-          {/* Real-time Progress Bar (Premium UX) */}
-          {loading && (
-            <div className="w-full bg-white/10 rounded-full h-3 mb-8 overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-cyan-400 to-purple-500 transition-all duration-500 ease-out" 
+        {/* Progress Bar */}
+        {loading && (
+          <div className="mb-8 space-y-2">
+            <div className="w-full bg-white/10 rounded-full h-2.5 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-cyan-400 to-purple-500 transition-all duration-500 ease-out rounded-full"
                 style={{ width: `${progress}%` }}
               />
-              <p className="text-xs text-gray-400 mt-1 text-right">{progress}% Complete</p>
             </div>
-          )}
+            <p className="text-xs text-gray-400 text-right">{progress}% complete</p>
+          </div>
+        )}
 
-          {/* Report Section */}
-          {report && (
-            <div className="space-y-6 animate-fade-in">
-              <div className="flex flex-wrap gap-3 justify-between items-center border-b border-white/10 pb-4">
-                <span className="text-sm bg-green-500/20 text-green-300 px-3 py-1 rounded-full flex items-center gap-1">
-                  <CheckCircle size={14}/> Analysis Complete
-                </span>
-                <div className="flex gap-3">
-                  <button onClick={downloadCSV} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm flex items-center gap-2">📊 CSV</button>
-                  <button onClick={() => window.print()} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm flex items-center gap-2"><Download size={16}/> PDF</button>
-                </div>
+        {/* Report Section */}
+        {report && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <h2 className="text-xl font-semibold text-green-400 flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Report Ready: <span className="text-white font-mono text-sm">{keyword}</span>
+              </h2>
+              <button
+                onClick={() => window.print()}
+                className="text-xs bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                Download PDF
+              </button>
+            </div>
+
+            {/* Premium Stats Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
+                <p className="text-gray-400 text-xs uppercase tracking-wider">Search Intent</p>
+                <p className="text-xl font-bold text-cyan-300 mt-1">{report.keyword_intent || 'Informational'}</p>
               </div>
-
-              {/* Premium Stats Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                  <p className="text-gray-400 text-xs">User Intent</p>
-                  <p className="text-xl font-bold text-cyan-300">{report.keyword_intent || 'Informational'}</p>
-                </div>
-                <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                  <p className="text-gray-400 text-xs">Content Quality Score</p>
-                  <p className="text-xl font-bold text-yellow-300">{report.content_score || 85}/100</p>
-                </div>
-                <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                  <p className="text-gray-400 text-xs">Readability</p>
-                  <p className="text-xl font-bold text-green-300">{report.readability_avg || 'Medium'}</p>
-                </div>
+              <div className="bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
+                <p className="text-gray-400 text-xs uppercase tracking-wider">Content Quality Score</p>
+                <p className="text-xl font-bold text-yellow-300 mt-1">{report.content_score || 85}/100</p>
               </div>
-
-              {/* Missing Headings */}
-              <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                <div className="flex justify-between items-center">
-                  <h3 className="font-bold text-purple-300 flex items-center gap-2">📌 Missing Headings</h3>
-                  <button onClick={() => copyToClipboard(report.missing_headings?.join('\n'))} className="text-xs bg-white/10 px-3 py-1 rounded-full flex items-center gap-1"><Copy size={12}/> Copy</button>
-                </div>
-                <ul className="list-disc pl-5 mt-2 space-y-1 text-gray-300">
-                  {report.missing_headings?.map((h, i) => <li key={i}>{h}</li>)}
-                </ul>
-              </div>
-
-              {/* Competitor Battle Table */}
-              {report.competitor_table && (
-                <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                  <h3 className="font-bold text-orange-300 mb-3">⚔️ Top Competitor Analysis</h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="border-b border-white/10 text-gray-400">
-                        <tr><th className="text-left p-2">#</th><th className="text-left p-2">Title</th><th className="text-left p-2">Est. Words</th><th className="text-left p-2">Strength</th></tr>
-                      </thead>
-                      <tbody>
-                        {report.competitor_table.map((c, i) => (
-                          <tr key={i} className="border-b border-white/5 hover:bg-white/5">
-                            <td className="p-2">{c.rank}</td>
-                            <td className="p-2 truncate max-w-[200px]">{c.title}</td>
-                            <td className="p-2">{c.word_count_est || 'N/A'}</td>
-                            <td className="p-2 text-xs text-green-300">{c.strength}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* Authority Links */}
-              <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                <h3 className="font-bold text-blue-300 mb-2">🔗 Authority Citations</h3>
-                <div className="flex flex-wrap gap-2">
-                  {report.authority_links?.map((l, i) => (
-                    <a key={i} href={l} target="_blank" rel="noreferrer" className="text-xs bg-blue-500/20 px-3 py-1 rounded-full hover:bg-blue-500/40 truncate max-w-[200px]">{l.replace(/^https?:\/\//, '').slice(0, 30)}</a>
-                  ))}
-                </div>
+              <div className="bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
+                <p className="text-gray-400 text-xs uppercase tracking-wider">Readability Level</p>
+                <p className="text-xl font-bold text-green-300 mt-1">{report.readability_avg || 'Medium'}</p>
               </div>
             </div>
-          )}
-        </div>
+
+            {/* Missing Headings */}
+            <div className="bg-white/5 p-5 rounded-2xl border border-white/10 backdrop-blur-sm">
+              <h3 className="font-bold text-purple-300 flex items-center gap-2 mb-3">
+                📌 Missing Headings (Add these to your content)
+              </h3>
+              <ul className="list-disc pl-5 space-y-1.5 text-gray-300 text-sm">
+                {report.missing_headings?.map((h, i) => (
+                  <li key={i}>{h}</li>
+                )) || <li className="text-gray-500">No headings found</li>}
+              </ul>
+            </div>
+
+            {/* FAQ Questions */}
+            <div className="bg-white/5 p-5 rounded-2xl border border-white/10 backdrop-blur-sm">
+              <h3 className="font-bold text-yellow-300 flex items-center gap-2 mb-3">
+                ❓ FAQ Schema Ideas (Answer these in your post)
+              </h3>
+              <ul className="list-disc pl-5 space-y-1.5 text-gray-300 text-sm">
+                {report.faq_questions?.map((q, i) => (
+                  <li key={i}>{q}</li>
+                )) || <li className="text-gray-500">No FAQs found</li>}
+              </ul>
+            </div>
+
+            {/* Competitor Battle Table (Premium Feature) */}
+            {report.competitor_table && report.competitor_table.length > 0 && (
+              <div className="bg-white/5 p-5 rounded-2xl border border-white/10 backdrop-blur-sm overflow-x-auto">
+                <h3 className="font-bold text-orange-300 flex items-center gap-2 mb-3">
+                  ⚔️ Competitor Battle Card (Top 5)
+                </h3>
+                <table className="w-full text-sm min-w-[500px]">
+                  <thead>
+                    <tr className="border-b border-white/10 text-left text-gray-400">
+                      <th className="p-2 font-medium">Rank</th>
+                      <th className="p-2 font-medium">Title</th>
+                      <th className="p-2 font-medium">Strength</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {report.competitor_table.map((c, i) => (
+                      <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition">
+                        <td className="p-2 font-mono text-xs text-cyan-300">#{c.rank}</td>
+                        <td className="p-2 truncate max-w-[200px]">{c.title}</td>
+                        <td className="p-2 text-xs text-green-300">{c.strength || 'N/A'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Authority Links */}
+            <div className="bg-white/5 p-5 rounded-2xl border border-white/10 backdrop-blur-sm">
+              <h3 className="font-bold text-blue-300 flex items-center gap-2 mb-3">
+                🔗 Authority Citations (Add outbound links to these)
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {report.authority_links?.map((l, i) => (
+                  <a
+                    key={i}
+                    href={l}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="text-xs bg-blue-500/20 hover:bg-blue-500/40 px-3 py-1.5 rounded-full transition truncate max-w-[250px] border border-blue-500/20"
+                    title={l}
+                  >
+                    {l.replace(/^https?:\/\//, '').replace(/\/.*$/, '').slice(0, 30)}
+                  </a>
+                )) || <span className="text-gray-500 text-sm">No authority links found</span>}
+              </div>
+            </div>
+
+            {/* Disclaimer */}
+            <p className="text-xs text-gray-500 text-center pt-4 border-t border-white/5">
+              ⚠️ Do not copy-paste this raw data. Use these human-edited insights to create original, high-quality content that outranks competitors.
+            </p>
+          </div>
+        )}
+
+        {/* Initial Empty State */}
+        {!loading && !report && !error && (
+          <div className="text-center py-20 text-gray-500">
+            <div className="text-6xl mb-4">🧠</div>
+            <p>Enter a keyword above to generate a detailed SEO brief.</p>
+            <p className="text-sm text-gray-600 mt-2">Powered by SerpAPI, Gemini AI, and MongoDB.</p>
+          </div>
+        )}
       </div>
+
+      {/* Tailwind CSS Animation (Add to global.css if needed, but works inline with style tag) */}
+      <style jsx>{`
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.5s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 }
