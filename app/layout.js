@@ -1,9 +1,29 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'RankForge - Premium SEO Intelligence',
-  description: 'AI analyzes competitors, finds content gaps, and gives you winning strategies. No fluff, just insights.',
-  keywords: 'SEO tool, content gap analysis, competitor research',
+  title: 'RankForge - Premium SEO Intelligence Suite',
+  description: 'Enterprise-grade content intelligence. AI analyzes competitors, finds gaps, and delivers actionable strategies.',
+  keywords: 'SEO tool, content gap analysis, competitor research, keyword analysis, content strategy',
+  openGraph: {
+    title: 'RankForge - Premium SEO Intelligence Suite',
+    description: 'AI-powered competitor analysis and content strategy tool.',
+    url: 'https://rankforge-front.vercel.app',
+    siteName: 'RankForge',
+    images: [
+      {
+        url: 'https://rankforge-front.vercel.app/og-image.png',
+        width: 1200,
+        height: 630,
+      },
+    ],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'RankForge - Premium SEO Intelligence Suite',
+    description: 'AI-powered competitor analysis and content strategy tool.',
+    images: ['https://rankforge-front.vercel.app/og-image.png'],
+  },
 };
 
 export default function RootLayout({ children }) {
