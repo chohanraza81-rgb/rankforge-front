@@ -1,0 +1,46 @@
+version: '3.8'
+services:
+  mongodb:
+    image: mongo:6
+    restart: always
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+
+  backend:
+    build: ./backend
+    restart: always
+    ports:
+      - '5000:5000'
+    environment:
+      PORT: 5000
+      MONGODB_URI: 'mongodb://admin:password123@mongodb:27017/rankforge?authSource=admin'
+      REDIS_URL: 'redis://redis:6379'
+      SERPAPI_KEY: 'your_key_here'
+      GEMINI_API_KEY: 'your_key_here'
+    depends_on:
+      - mongodb
+      - redis
+
+  frontend:
+    build: ./frontend
+    restart: always
+    ports:
+      - '3000:3000'
+    environment:
+      NEXT_PUBLIC_API_URL: 'http://localhost:5000/api'
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
