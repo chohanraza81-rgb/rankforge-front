@@ -5,7 +5,6 @@ const nextConfig = {
   images: {
     domains: ['rankforge-front.vercel.app'],
   },
-  // For production
   output: 'standalone',
 };
 
