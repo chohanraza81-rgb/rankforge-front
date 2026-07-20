@@ -1,5 +1,8 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
+import { Download, FileText, Loader2, CheckCircle, Target, TrendingUp, Zap, Lightbulb } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 export default function Home() {
   const [keyword, setKeyword] = useState('');
@@ -9,14 +12,50 @@ export default function Home() {
   const [error, setError] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
   const intervalRef = useRef(null);
-  const startTimeRef = useRef(null);
+  const reportRef = useRef(null);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);
+
+  const exportPDF = async () => {
+    if (!reportRef.current) return;
+    
+    try {
+      const element = reportRef.current;
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        backgroundColor: '#0f172a',
+        logging: false,
+        useCORS: true,
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      let heightLeft = pdfHeight;
+      let position = 0;
+      
+      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pdf.internal.pageSize.getHeight();
+      
+      while (heightLeft > 0) {
+        position = heightLeft - pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pdf.internal.pageSize.getHeight();
+      }
+      
+      pdf.save(`RankForge-Report-${keyword.replace(/\s+/g, '-')}.pdf`);
+    } catch (error) {
+      console.error('PDF Export Error:', error);
+      alert('PDF export failed. Please try again.');
+    }
+  };
 
   const handleGenerate = async () => {
     if (!keyword.trim()) {
@@ -24,25 +63,22 @@ export default function Home() {
       return;
     }
 
-    // Reset states
     setLoading(true);
     setProgress(0);
     setReport(null);
     setError('');
-    setStatusMessage('⏳ Starting analysis...');
-    startTimeRef.current = Date.now();
+    setStatusMessage('⏳ Starting premium analysis...');
 
     if (intervalRef.current) clearInterval(intervalRef.current);
 
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL;
       if (!baseUrl) {
-        setError('NEXT_PUBLIC_API_URL is not set.');
+        setError('API URL is not configured.');
         setLoading(false);
         return;
       }
 
-      // 1. Call Backend to generate report
       const res = await fetch(`${baseUrl}/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -56,7 +92,6 @@ export default function Home() {
 
       const data = await res.json();
 
-      // 2. If Cache hit, display immediately
       if (data.cached) {
         setReport(data.data);
         setProgress(100);
@@ -66,32 +101,19 @@ export default function Home() {
       }
 
       const reportId = data.reportId;
-      setStatusMessage('🔄 Fetching competitor data... (Step 1/3)');
+      setStatusMessage('🔄 Fetching competitor data...');
 
-      // 3. Polling with longer timeout (5 minutes max)
       let pollCount = 0;
-      const maxPolls = 120; // 120 * 5 seconds = 10 minutes max
-      let lastProgress = 0;
+      const maxPolls = 120;
 
       intervalRef.current = setInterval(async () => {
         pollCount++;
         
-        // Update progress (simulate)
-        if (pollCount < 20) {
-          // Step 1: SerpAPI (0-40%)
-          const newProgress = Math.min(pollCount * 2, 40);
-          setProgress(newProgress);
-          if (pollCount === 5) setStatusMessage('🔍 Analyzing competitor pages... (Step 2/3)');
-        } else if (pollCount < 40) {
-          // Step 2: Gemini Processing (40-85%)
-          const newProgress = Math.min(40 + (pollCount - 20) * 2.25, 85);
-          setProgress(newProgress);
-          if (pollCount === 25) setStatusMessage('🧠 Generating AI insights... (Step 3/3)');
-        } else {
-          // Step 3: Almost done (85-95%)
-          setProgress(Math.min(85 + (pollCount - 40) * 0.5, 95));
-          setStatusMessage('⏳ Finalizing report...');
-        }
+        if (pollCount < 10) setStatusMessage('🔍 Analyzing top competitors...');
+        else if (pollCount < 20) setStatusMessage('🧠 Generating premium insights...');
+        else setStatusMessage('⏳ Finalizing premium report...');
+        
+        setProgress(Math.min(pollCount * 1.5, 95));
 
         try {
           const statusRes = await fetch(`${baseUrl}/report/${reportId}`);
@@ -102,48 +124,45 @@ export default function Home() {
           if (statusData.status === 'completed') {
             setReport(statusData.data);
             setProgress(100);
-            setStatusMessage('✅ Report ready!');
+            setStatusMessage('✅ Premium report ready!');
             setLoading(false);
             clearInterval(intervalRef.current);
             intervalRef.current = null;
           } else if (statusData.status === 'failed') {
-            const errorMsg = statusData.errorMessage || 'Report generation failed. Please try again.';
-            setError(`❌ ${errorMsg}`);
+            setError(`❌ ${statusData.errorMessage || 'Report generation failed.'}`);
             setLoading(false);
             clearInterval(intervalRef.current);
             intervalRef.current = null;
           } else if (pollCount >= maxPolls) {
-            // Timeout after 10 minutes
-            setError('⏰ Generation is taking too long (over 10 minutes). Please try again with a different keyword.');
+            setError('⏰ Generation is taking too long. Please try again.');
             setLoading(false);
             clearInterval(intervalRef.current);
             intervalRef.current = null;
           }
         } catch (err) {
           console.error('Polling error:', err);
-          // Don't stop loading, let it retry
         }
-      }, 5000); // 5 seconds interval
+      }, 3000);
 
     } catch (err) {
-      setError(err.message || 'Something went wrong. Check if backend is running.');
+      setError(err.message || 'Something went wrong.');
       setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white p-4 md:p-8">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 text-transparent bg-clip-text inline-block">
             RankForge
           </h1>
-          <span className="ml-3 text-xs font-semibold bg-purple-500/30 text-purple-300 px-3 py-1 rounded-full border border-purple-500/50">
-            PREMIUM v2.0
+          <span className="ml-3 text-xs font-semibold bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1.5 rounded-full border border-purple-500/50 shadow-lg shadow-purple-500/20">
+            ENTERPRISE v3.0
           </span>
           <p className="text-gray-400 mt-2 text-sm md:text-base">
-            AI doesn't write. It analyzes competitors, finds gaps, and gives you the winning strategy.
+            Enterprise-grade SEO intelligence. AI analyzes competitors, finds gaps, and gives you actionable strategies.
           </p>
         </div>
 
@@ -154,21 +173,18 @@ export default function Home() {
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
-            placeholder='Enter keyword (e.g., "best budget laptops 2025")'
+            placeholder='Enter keyword (e.g., "best cars in Pakistan")'
             className="flex-1 p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-400 transition"
             disabled={loading}
           />
           <button
             onClick={handleGenerate}
             disabled={loading}
-            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105 transition-transform rounded-2xl font-bold shadow-lg shadow-purple-500/30 disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2 min-w-[160px]"
+            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105 transition-transform rounded-2xl font-bold shadow-lg shadow-purple-500/30 disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2 min-w-[200px]"
           >
             {loading ? (
               <>
-                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
+                <Loader2 className="animate-spin h-5 w-5" />
                 Analyzing...
               </>
             ) : (
@@ -177,116 +193,122 @@ export default function Home() {
           </button>
         </div>
 
-        {/* Status Message */}
+        {/* Status & Progress */}
         {statusMessage && loading && (
-          <div className="mb-3 text-sm text-cyan-300 text-center">
-            {statusMessage}
-          </div>
+          <div className="mb-3 text-sm text-cyan-300 text-center">{statusMessage}</div>
         )}
 
-        {/* Error Display */}
         {error && (
           <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-2xl text-red-300 text-sm">
             ⚠️ {error}
           </div>
         )}
 
-        {/* Progress Bar */}
         {loading && (
           <div className="mb-8 space-y-2">
             <div className="w-full bg-white/10 rounded-full h-2.5 overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-cyan-400 to-purple-500 transition-all duration-500 ease-out rounded-full"
-                style={{ width: `${progress}%` }}
-              />
+              <div className="h-full bg-gradient-to-r from-cyan-400 to-purple-500 transition-all duration-500 rounded-full" style={{ width: `${progress}%` }} />
             </div>
             <p className="text-xs text-gray-400 text-right">{progress}% complete</p>
           </div>
         )}
 
-        {/* Report Section */}
+        {/* Premium Report */}
         {report && (
-          <div className="space-y-6 animate-fade-in">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <h2 className="text-xl font-semibold text-green-400 flex items-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                Report Ready: <span className="text-white font-mono text-sm">{keyword}</span>
-              </h2>
-              <button
-                onClick={() => window.print()}
-                className="text-xs bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition flex items-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                Download PDF
-              </button>
+          <div ref={reportRef} className="bg-slate-900/50 backdrop-blur-xl rounded-3xl border border-white/10 p-6 md:p-8 space-y-6">
+            <div className="flex flex-wrap gap-3 justify-between items-center border-b border-white/10 pb-4">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+                <h2 className="text-xl font-semibold text-green-400">
+                  Premium Report: <span className="text-white font-mono">{keyword}</span>
+                </h2>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={exportPDF} className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105 transition rounded-xl text-sm flex items-center gap-2 shadow-lg shadow-purple-500/30">
+                  <FileText size={16} /> Export PDF
+                </button>
+                <button onClick={() => window.print()} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm flex items-center gap-2">
+                  <Download size={16} /> Print
+                </button>
+              </div>
             </div>
 
-            {/* Premium Stats Cards */}
+            {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
-                <p className="text-gray-400 text-xs uppercase tracking-wider">Search Intent</p>
+              <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                <p className="text-gray-400 text-xs flex items-center gap-1"><Target size={14}/> Search Intent</p>
                 <p className="text-xl font-bold text-cyan-300 mt-1">{report.keyword_intent || 'Informational'}</p>
               </div>
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
-                <p className="text-gray-400 text-xs uppercase tracking-wider">Content Quality Score</p>
+              <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                <p className="text-gray-400 text-xs flex items-center gap-1"><TrendingUp size={14}/> Content Score</p>
                 <p className="text-xl font-bold text-yellow-300 mt-1">{report.content_score || 85}/100</p>
               </div>
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
-                <p className="text-gray-400 text-xs uppercase tracking-wider">Readability Level</p>
+              <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                <p className="text-gray-400 text-xs flex items-center gap-1"><Zap size={14}/> Readability</p>
                 <p className="text-xl font-bold text-green-300 mt-1">{report.readability_avg || 'Medium'}</p>
               </div>
             </div>
 
-            {/* Missing Headings */}
-            {report.missing_headings && report.missing_headings.length > 0 && (
-              <div className="bg-white/5 p-5 rounded-2xl border border-white/10 backdrop-blur-sm">
+            {/* Content Recommendations */}
+            {report.content_recommendations && (
+              <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-5 rounded-2xl border border-purple-500/20">
                 <h3 className="font-bold text-purple-300 flex items-center gap-2 mb-3">
-                  📌 Missing Headings (Add these to your content)
+                  <Lightbulb size={18}/> Content Strategy
                 </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <div><span className="text-gray-400">📌 Title:</span> {report.content_recommendations.title || 'N/A'}</div>
+                  <div><span className="text-gray-400">📝 Meta:</span> {report.content_recommendations.meta_description || 'N/A'}</div>
+                  <div><span className="text-gray-400">🎯 Audience:</span> {report.content_recommendations.target_audience || 'N/A'}</div>
+                  <div><span className="text-gray-400">📄 Length:</span> {report.content_recommendations.content_length || 'N/A'}</div>
+                  <div><span className="text-gray-400">🎤 Tone:</span> {report.content_recommendations.tone || 'N/A'}</div>
+                  <div className="md:col-span-2">
+                    <span className="text-gray-400">💡 SEO Tips:</span>
+                    <ul className="list-disc pl-5 mt-1">
+                      {report.content_recommendations.seo_tips?.map((tip, i) => <li key={i}>{tip}</li>)}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Missing Headings */}
+            {report.missing_headings?.length > 0 && (
+              <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
+                <h3 className="font-bold text-purple-300 mb-3">📌 Missing Headings (Content Gaps)</h3>
                 <ul className="list-disc pl-5 space-y-1.5 text-gray-300 text-sm">
-                  {report.missing_headings.map((h, i) => (
-                    <li key={i}>{h}</li>
-                  ))}
+                  {report.missing_headings.map((h, i) => <li key={i}>{h}</li>)}
                 </ul>
               </div>
             )}
 
-            {/* FAQ Questions */}
-            {report.faq_questions && report.faq_questions.length > 0 && (
-              <div className="bg-white/5 p-5 rounded-2xl border border-white/10 backdrop-blur-sm">
-                <h3 className="font-bold text-yellow-300 flex items-center gap-2 mb-3">
-                  ❓ FAQ Schema Ideas (Answer these in your post)
-                </h3>
+            {/* FAQ */}
+            {report.faq_questions?.length > 0 && (
+              <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
+                <h3 className="font-bold text-yellow-300 mb-3">❓ FAQ Schema</h3>
                 <ul className="list-disc pl-5 space-y-1.5 text-gray-300 text-sm">
-                  {report.faq_questions.map((q, i) => (
-                    <li key={i}>{q}</li>
-                  ))}
+                  {report.faq_questions.map((q, i) => <li key={i}>{q}</li>)}
                 </ul>
               </div>
             )}
 
-            {/* Competitor Battle Table */}
-            {report.competitor_table && report.competitor_table.length > 0 && (
-              <div className="bg-white/5 p-5 rounded-2xl border border-white/10 backdrop-blur-sm overflow-x-auto">
-                <h3 className="font-bold text-orange-300 flex items-center gap-2 mb-3">
-                  ⚔️ Competitor Battle Card (Top 5)
-                </h3>
-                <table className="w-full text-sm min-w-[500px]">
+            {/* Competitor Table */}
+            {report.competitor_table?.length > 0 && (
+              <div className="bg-white/5 p-5 rounded-2xl border border-white/10 overflow-x-auto">
+                <h3 className="font-bold text-orange-300 mb-3">🏆 Competitor Battle Card</h3>
+                <table className="w-full text-sm min-w-[400px]">
                   <thead>
                     <tr className="border-b border-white/10 text-left text-gray-400">
-                      <th className="p-2 font-medium">Rank</th>
-                      <th className="p-2 font-medium">Title</th>
-                      <th className="p-2 font-medium">Strength</th>
+                      <th className="p-2">Rank</th>
+                      <th className="p-2">Title</th>
+                      <th className="p-2">Strength</th>
                     </tr>
                   </thead>
                   <tbody>
                     {report.competitor_table.map((c, i) => (
-                      <tr key={i} className="border-b border-white/5 hover:bg-white/5 transition">
-                        <td className="p-2 font-mono text-xs text-cyan-300">#{c.rank}</td>
-                        <td className="p-2 truncate max-w-[200px]">{c.title}</td>
-                        <td className="p-2 text-xs text-green-300">{c.strength || 'N/A'}</td>
+                      <tr key={i} className="border-b border-white/5 hover:bg-white/5">
+                        <td className="p-2 text-cyan-300">#{c.rank}</td>
+                        <td className="p-2 truncate max-w-[180px]">{c.title}</td>
+                        <td className="p-2 text-green-300 text-xs">{c.strength}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -295,21 +317,12 @@ export default function Home() {
             )}
 
             {/* Authority Links */}
-            {report.authority_links && report.authority_links.length > 0 && (
-              <div className="bg-white/5 p-5 rounded-2xl border border-white/10 backdrop-blur-sm">
-                <h3 className="font-bold text-blue-300 flex items-center gap-2 mb-3">
-                  🔗 Authority Citations (Add outbound links to these)
-                </h3>
+            {report.authority_links?.length > 0 && (
+              <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
+                <h3 className="font-bold text-blue-300 mb-3">🔗 Authority Citations</h3>
                 <div className="flex flex-wrap gap-2">
                   {report.authority_links.map((l, i) => (
-                    <a
-                      key={i}
-                      href={l}
-                      target="_blank"
-                      rel="noreferrer noopener"
-                      className="text-xs bg-blue-500/20 hover:bg-blue-500/40 px-3 py-1.5 rounded-full transition truncate max-w-[250px] border border-blue-500/20"
-                      title={l}
-                    >
+                    <a key={i} href={l} target="_blank" rel="noreferrer" className="text-xs bg-blue-500/20 hover:bg-blue-500/40 px-3 py-1.5 rounded-full transition truncate max-w-[250px] border border-blue-500/20">
                       {l.replace(/^https?:\/\//, '').replace(/\/.*$/, '').slice(0, 30)}
                     </a>
                   ))}
@@ -317,32 +330,34 @@ export default function Home() {
               </div>
             )}
 
-            {/* Disclaimer */}
+            {/* SEO Metadata */}
+            {report.seo_metadata && (
+              <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
+                <h3 className="font-bold text-emerald-300 mb-3">🏷️ SEO Metadata</h3>
+                <div className="space-y-2 text-sm">
+                  <div><span className="text-gray-400">Title Tag:</span> {report.seo_metadata.title_tag || 'N/A'}</div>
+                  <div><span className="text-gray-400">Meta Description:</span> {report.seo_metadata.meta_description || 'N/A'}</div>
+                  <div><span className="text-gray-400">URL Slug:</span> {report.seo_metadata.url_slug || 'N/A'}</div>
+                  <div><span className="text-gray-400">Focus Keyword:</span> <span className="text-yellow-300">{report.seo_metadata.focus_keyword || 'N/A'}</span></div>
+                </div>
+              </div>
+            )}
+
             <p className="text-xs text-gray-500 text-center pt-4 border-t border-white/5">
-              ⚠️ Do not copy-paste this raw data. Use these human-edited insights to create original, high-quality content that outranks competitors.
+              ⚠️ Do not copy-paste raw data. Use these human-edited insights to create original content.
             </p>
           </div>
         )}
 
-        {/* Initial Empty State */}
+        {/* Empty State */}
         {!loading && !report && !error && (
           <div className="text-center py-20 text-gray-500">
-            <div className="text-6xl mb-4">🧠</div>
-            <p>Enter a keyword above to generate a detailed SEO brief.</p>
-            <p className="text-sm text-gray-600 mt-2">Powered by SerpAPI, Gemini AI, and MongoDB.</p>
+            <div className="text-7xl mb-4">🧠</div>
+            <p className="text-xl font-semibold text-gray-300">Enter a keyword to generate a premium SEO brief</p>
+            <p className="text-sm text-gray-600 mt-2">Powered by GROQ, SerpAPI, and MongoDB</p>
           </div>
         )}
       </div>
-
-      <style jsx>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.5s ease-out forwards;
-        }
-      `}</style>
     </div>
   );
 }
