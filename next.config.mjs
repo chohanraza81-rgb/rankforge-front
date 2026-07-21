@@ -6,6 +6,10 @@ const nextConfig = {
     domains: ['rankforge-front.vercel.app'],
   },
   output: 'standalone',
+  // Increase timeout for API routes
+  serverRuntimeConfig: {
+    maxDuration: 60,
+  },
 };
 
 export default nextConfig;
