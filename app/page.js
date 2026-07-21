@@ -9,7 +9,7 @@ import {
   Hash, Map, Video, Image, FolderTree, Layers, Brain,
   Compass, Globe, Clock, Star, ThumbsUp, MessageSquare,
   Share2, Eye, PenTool, FileCheck, AlertTriangle, RefreshCw,
-  Tag, FileText as FileIcon, Link, Eye as EyeIcon
+  Tag, FileText as FileIcon, Eye as EyeIcon, ListChecks
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -32,6 +32,7 @@ export default function Home() {
     };
   }, []);
 
+  // ---------- PDF Export ----------
   const exportPDF = async () => {
     if (!reportRef.current) return;
     try {
@@ -63,6 +64,7 @@ export default function Home() {
     }
   };
 
+  // ---------- Copy to Clipboard ----------
   const copyToClipboard = async (text) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -73,6 +75,7 @@ export default function Home() {
     }
   };
 
+  // ---------- Filter Competitors ----------
   const filterCompetitors = (competitors) => {
     if (!competitors || !Array.isArray(competitors)) return [];
     const blacklist = ['reddit.com', 'youtube.com', 'youtu.be', 'facebook.com', 'fb.com', 'instagram.com', 'twitter.com', 'x.com', 'tiktok.com', 'linkedin.com', 'quora.com', 'pinterest.com'];
@@ -93,6 +96,7 @@ export default function Home() {
     });
   };
 
+  // ---------- Handle Generate ----------
   const handleGenerate = async () => {
     if (!keyword.trim()) {
       setError('Please enter a keyword.');
@@ -214,6 +218,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
+        {/* Header */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 text-transparent bg-clip-text">RankForge</h1>
@@ -222,6 +227,7 @@ export default function Home() {
           <p className="text-gray-400 mt-2 text-sm md:text-base">14 ULTIMATE Features: AI Intent • SERP Analysis • NLP • Topical Map • Internal Links • EEAT • Featured Snippet • AI Overview • PAA • Content Brief • Schema • Cannibalization • Brand Backlink • Freshness</p>
         </motion.div>
 
+        {/* Input Section */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row gap-4 mb-6">
           <input type="text" value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleGenerate()} placeholder='Enter keyword (e.g., "best smartphones in Australia")' className="flex-1 p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-400" disabled={loading} />
           <button onClick={handleGenerate} disabled={loading} className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105 transition-transform rounded-2xl font-bold shadow-lg shadow-purple-500/30 disabled:opacity-50 flex items-center justify-center gap-2 min-w-[200px]">
@@ -229,6 +235,7 @@ export default function Home() {
           </button>
         </motion.div>
 
+        {/* Status & Progress */}
         {statusMessage && loading && <div className="mb-3 text-sm text-cyan-300 text-center">{statusMessage}</div>}
         {error && <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-2xl text-red-300 text-sm">⚠️ {error}</div>}
 
@@ -241,9 +248,11 @@ export default function Home() {
           </div>
         )}
 
+        {/* ULTIMATE Report */}
         <AnimatePresence>
           {report && (
             <motion.div ref={reportRef} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="bg-slate-900/50 backdrop-blur-xl rounded-3xl border border-white/10 p-6 md:p-8 space-y-6">
+              
               {/* Report Header */}
               <div className="flex flex-wrap gap-3 justify-between items-center border-b border-white/10 pb-4">
                 <div className="flex items-center gap-3">
@@ -260,7 +269,7 @@ export default function Home() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center">
                   <p className="text-gray-400 text-xs flex items-center justify-center gap-1"><Target size={14}/> Intent</p>
-                  <p className="text-xl font-bold text-cyan-300 mt-1">{report.search_intent_analysis?.intent_type || 'N/A'}</p>
+                  <p className="text-xl font-bold text-cyan-300 mt-1">{report.search_intent_analysis?.intent_type || report.keyword_intent || 'N/A'}</p>
                   <p className="text-xs text-gray-500">Confidence: {report.search_intent_analysis?.confidence_score || 0}%</p>
                 </div>
                 <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center">
@@ -278,7 +287,7 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Tabs */}
+              {/* Tabs Navigation */}
               <div className="flex flex-wrap gap-2 border-b border-white/10 pb-3 overflow-x-auto">
                 {tabs.map((tab) => (
                   <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-3 py-1.5 rounded-xl text-xs font-medium transition whitespace-nowrap ${activeTab === tab.id ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
@@ -290,7 +299,7 @@ export default function Home() {
               {/* ===== TAB CONTENT ===== */}
               <div className="space-y-6">
 
-                {/* === OVERVIEW === */}
+                {/* ===== TAB 1: OVERVIEW ===== */}
                 {activeTab === 'overview' && (
                   <div className="space-y-6">
                     {/* Quick Stats */}
@@ -314,17 +323,20 @@ export default function Home() {
                     </div>
 
                     {/* SEO Metadata - COMPLETE */}
-                    <div className="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 p-5 rounded-2xl border border-emerald-500/20">
-                      <h3 className="font-bold text-emerald-300 flex items-center gap-2 mb-3"><Tag size={18}/> SEO Metadata (Complete)</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                        <div><span className="text-gray-400">📌 Title Tag:</span> <span className="text-cyan-300">{report.seo_metadata?.title_tag || 'N/A'}</span></div>
-                        <div><span className="text-gray-400">📝 Meta Description:</span> <span className="text-gray-300">{report.seo_metadata?.meta_description || 'N/A'}</span></div>
-                        <div><span className="text-gray-400">🔗 URL Slug:</span> <span className="text-purple-300">{report.seo_metadata?.url_slug || 'N/A'}</span></div>
-                        <div><span className="text-gray-400">🎯 Focus Keyword:</span> <span className="text-yellow-300">{report.seo_metadata?.focus_keyword || 'N/A'}</span></div>
-                        <div><span className="text-gray-400">#️⃣ H1 Tag:</span> <span className="text-green-300">{report.seo_metadata?.h1_tag || 'N/A'}</span></div>
-                        <div><span className="text-gray-400">⭐ SEO Grade:</span> <span className="text-orange-300">{report.seo_metadata?.seo_grade || 'N/A'}</span></div>
+                    {report.seo_metadata && (
+                      <div className="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 p-5 rounded-2xl border border-emerald-500/20">
+                        <h3 className="font-bold text-emerald-300 flex items-center gap-2 mb-3"><Tag size={18}/> SEO Metadata (Complete)</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                          <div className="bg-white/5 p-2 rounded-lg"><span className="text-gray-400">📌 Title Tag:</span> <span className="text-cyan-300 block">{report.seo_metadata.title_tag || 'N/A'}</span></div>
+                          <div className="bg-white/5 p-2 rounded-lg"><span className="text-gray-400">📝 Meta Description:</span> <span className="text-gray-300 block">{report.seo_metadata.meta_description || 'N/A'}</span></div>
+                          <div className="bg-white/5 p-2 rounded-lg"><span className="text-gray-400">🔗 URL Slug:</span> <span className="text-purple-300 block">{report.seo_metadata.url_slug || 'N/A'}</span></div>
+                          <div className="bg-white/5 p-2 rounded-lg"><span className="text-gray-400">🎯 Focus Keyword:</span> <span className="text-yellow-300 block">{report.seo_metadata.focus_keyword || 'N/A'}</span></div>
+                          <div className="bg-white/5 p-2 rounded-lg"><span className="text-gray-400">#️⃣ H1 Tag:</span> <span className="text-green-300 block">{report.seo_metadata.h1_tag || 'N/A'}</span></div>
+                          <div className="bg-white/5 p-2 rounded-lg"><span className="text-gray-400">⭐ SEO Grade:</span> <span className="text-orange-300 block font-bold">{report.seo_metadata.seo_grade || 'N/A'}</span></div>
+                        </div>
+                        <button onClick={() => copyToClipboard(JSON.stringify(report.seo_metadata, null, 2))} className="mt-3 text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg flex items-center gap-1"><Copy size={12}/> Copy All SEO Metadata</button>
                       </div>
-                    </div>
+                    )}
 
                     {/* Missing Headings */}
                     {report.missing_headings?.length > 0 && (
@@ -358,148 +370,451 @@ export default function Home() {
                   </div>
                 )}
 
-                {/* === INTENT TAB === */}
-                {activeTab === 'intent' && report.search_intent_analysis && (
+                {/* ===== TAB 2: INTENT ===== */}
+                {activeTab === 'intent' && (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center">
-                        <div className="text-2xl font-bold text-cyan-300">{report.search_intent_analysis.intent_type || 'N/A'}</div>
-                        <div className="text-xs text-gray-400">Intent Type</div>
-                      </div>
-                      <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center">
-                        <div className="text-2xl font-bold text-yellow-300">{report.search_intent_analysis.confidence_score || 0}%</div>
-                        <div className="text-xs text-gray-400">Confidence Score</div>
-                      </div>
-                      <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center">
-                        <div className="text-2xl font-bold text-green-300">{report.search_intent_analysis.buyer_stage || 'N/A'}</div>
-                        <div className="text-xs text-gray-400">Buyer Stage</div>
-                      </div>
-                    </div>
-                    <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                      <span className="text-gray-400 text-sm">🎯 User Goal:</span>
-                      <p className="text-cyan-300 mt-1">{report.search_intent_analysis.user_goal || 'N/A'}</p>
-                    </div>
-                    <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                      <span className="text-gray-400 text-sm">📋 Sub-Intents:</span>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {report.search_intent_analysis.sub_intents?.map((s, i) => <span key={i} className="bg-purple-500/20 px-3 py-1 rounded-full text-xs border border-purple-500/30">{s}</span>)}
-                      </div>
-                    </div>
-                    <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                      <span className="text-gray-400 text-sm">📄 Content Type:</span>
-                      <p className="text-yellow-300 mt-1">{report.search_intent_analysis.content_type || 'N/A'}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* === SERP TAB === */}
-                {activeTab === 'serp' && report.full_serp_analysis && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      <div className="bg-white/5 p-3 rounded-xl text-center">
-                        <div className="text-xl font-bold text-cyan-300">{report.full_serp_analysis.total_results?.toLocaleString() || 'N/A'}</div>
-                        <div className="text-xs text-gray-400">Total Results</div>
-                      </div>
-                      <div className="bg-white/5 p-3 rounded-xl text-center">
-                        <div className="text-xl font-bold text-yellow-300">{report.full_serp_analysis.paid_ads || 'N/A'}</div>
-                        <div className="text-xs text-gray-400">Paid Ads</div>
-                      </div>
-                      <div className="bg-white/5 p-3 rounded-xl text-center">
-                        <div className="text-xl font-bold text-green-300">{report.full_serp_analysis.organic_results?.length || 'N/A'}</div>
-                        <div className="text-xs text-gray-400">Organic Results</div>
-                      </div>
-                      <div className="bg-white/5 p-3 rounded-xl text-center">
-                        <div className="text-xl font-bold text-purple-300">{report.full_serp_analysis.serp_features?.length || 'N/A'}</div>
-                        <div className="text-xs text-gray-400">SERP Features</div>
-                      </div>
-                    </div>
-
-                    {report.full_serp_analysis.featured_snippet && (
-                      <div className="bg-purple-500/10 p-4 rounded-2xl border border-purple-500/20">
-                        <span className="text-gray-400 text-sm">⭐ Featured Snippet:</span>
-                        <p className="text-cyan-300 mt-1">{report.full_serp_analysis.featured_snippet}</p>
-                      </div>
-                    )}
-
-                    {report.full_serp_analysis.knowledge_panel && (
-                      <div className="bg-blue-500/10 p-4 rounded-2xl border border-blue-500/20">
-                        <span className="text-gray-400 text-sm">📋 Knowledge Panel:</span>
-                        <p className="text-blue-300 mt-1">{report.full_serp_analysis.knowledge_panel}</p>
-                      </div>
+                    {report.search_intent_analysis ? (
+                      <>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center">
+                            <div className="text-2xl font-bold text-cyan-300">{report.search_intent_analysis.intent_type || 'N/A'}</div>
+                            <div className="text-xs text-gray-400">Intent Type</div>
+                          </div>
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center">
+                            <div className="text-2xl font-bold text-yellow-300">{report.search_intent_analysis.confidence_score || 0}%</div>
+                            <div className="text-xs text-gray-400">Confidence Score</div>
+                          </div>
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center">
+                            <div className="text-2xl font-bold text-green-300">{report.search_intent_analysis.buyer_stage || 'N/A'}</div>
+                            <div className="text-xs text-gray-400">Buyer Stage</div>
+                          </div>
+                        </div>
+                        <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                          <span className="text-gray-400 text-sm">🎯 User Goal:</span>
+                          <p className="text-cyan-300 mt-1">{report.search_intent_analysis.user_goal || 'N/A'}</p>
+                        </div>
+                        <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                          <span className="text-gray-400 text-sm">📋 Sub-Intents:</span>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {report.search_intent_analysis.sub_intents?.map((s, i) => <span key={i} className="bg-purple-500/20 px-3 py-1 rounded-full text-xs border border-purple-500/30">{s}</span>)}
+                          </div>
+                        </div>
+                        <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                          <span className="text-gray-400 text-sm">📄 Content Type:</span>
+                          <p className="text-yellow-300 mt-1">{report.search_intent_analysis.content_type || 'N/A'}</p>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">No intent data available</div>
                     )}
                   </div>
                 )}
 
-                {/* === SEO TAB (Complete) === */}
+                {/* ===== TAB 3: SERP ===== */}
+                {activeTab === 'serp' && (
+                  <div className="space-y-4">
+                    {report.full_serp_analysis ? (
+                      <>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div className="bg-white/5 p-3 rounded-xl text-center">
+                            <div className="text-xl font-bold text-cyan-300">{report.full_serp_analysis.total_results?.toLocaleString() || 'N/A'}</div>
+                            <div className="text-xs text-gray-400">Total Results</div>
+                          </div>
+                          <div className="bg-white/5 p-3 rounded-xl text-center">
+                            <div className="text-xl font-bold text-yellow-300">{report.full_serp_analysis.paid_ads || 'N/A'}</div>
+                            <div className="text-xs text-gray-400">Paid Ads</div>
+                          </div>
+                          <div className="bg-white/5 p-3 rounded-xl text-center">
+                            <div className="text-xl font-bold text-green-300">{report.full_serp_analysis.organic_results?.length || 'N/A'}</div>
+                            <div className="text-xs text-gray-400">Organic Results</div>
+                          </div>
+                          <div className="bg-white/5 p-3 rounded-xl text-center">
+                            <div className="text-xl font-bold text-purple-300">{report.full_serp_analysis.serp_features?.length || 'N/A'}</div>
+                            <div className="text-xs text-gray-400">SERP Features</div>
+                          </div>
+                        </div>
+
+                        {report.full_serp_analysis.featured_snippet && (
+                          <div className="bg-purple-500/10 p-4 rounded-2xl border border-purple-500/20">
+                            <span className="text-gray-400 text-sm">⭐ Featured Snippet:</span>
+                            <p className="text-cyan-300 mt-1">{report.full_serp_analysis.featured_snippet}</p>
+                          </div>
+                        )}
+
+                        {report.full_serp_analysis.knowledge_panel && (
+                          <div className="bg-blue-500/10 p-4 rounded-2xl border border-blue-500/20">
+                            <span className="text-gray-400 text-sm">📋 Knowledge Panel:</span>
+                            <p className="text-blue-300 mt-1">{report.full_serp_analysis.knowledge_panel}</p>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">No SERP data available</div>
+                    )}
+                  </div>
+                )}
+
+                {/* ===== TAB 4: NLP ===== */}
+                {activeTab === 'nlp' && (
+                  <div className="space-y-4">
+                    {report.nlp_entity_extraction ? (
+                      <>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div className="bg-white/5 p-3 rounded-xl text-center">
+                            <div className="text-xl font-bold text-cyan-300">{report.nlp_entity_extraction.entities?.length || 'N/A'}</div>
+                            <div className="text-xs text-gray-400">Entities Found</div>
+                          </div>
+                          <div className="bg-white/5 p-3 rounded-xl text-center">
+                            <div className="text-xl font-bold text-yellow-300">{report.nlp_entity_extraction.key_phrases?.length || 'N/A'}</div>
+                            <div className="text-xs text-gray-400">Key Phrases</div>
+                          </div>
+                          <div className="bg-white/5 p-3 rounded-xl text-center">
+                            <div className="text-xl font-bold text-green-300">{report.nlp_entity_extraction.sentiment_score || 'N/A'}</div>
+                            <div className="text-xs text-gray-400">Sentiment Score</div>
+                          </div>
+                          <div className="bg-white/5 p-3 rounded-xl text-center">
+                            <div className="text-xl font-bold text-purple-300">{report.nlp_entity_extraction.language || 'N/A'}</div>
+                            <div className="text-xs text-gray-400">Language</div>
+                          </div>
+                        </div>
+
+                        {report.nlp_entity_extraction.entities?.length > 0 && (
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                            <span className="text-gray-400 text-sm">🔍 Entities:</span>
+                            <div className="mt-2 space-y-2 max-h-40 overflow-y-auto">
+                              {report.nlp_entity_extraction.entities.slice(0, 10).map((e, i) => (
+                                <div key={i} className="flex justify-between items-center text-xs bg-white/5 p-2 rounded-lg">
+                                  <span className="text-cyan-300">{e.name}</span>
+                                  <span className="text-gray-400">{e.type} • Salience: {e.salience ? (e.salience * 100).toFixed(0) : 'N/A'}%</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {report.nlp_entity_extraction.key_phrases?.length > 0 && (
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                            <span className="text-gray-400 text-sm">📝 Key Phrases:</span>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {report.nlp_entity_extraction.key_phrases.map((p, i) => <span key={i} className="bg-purple-500/20 px-3 py-1 rounded-full text-xs border border-purple-500/30">{p}</span>)}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">No NLP data available</div>
+                    )}
+                  </div>
+                )}
+
+                {/* ===== TAB 5: TOPICAL ===== */}
+                {activeTab === 'topical' && (
+                  <div className="space-y-4">
+                    {report.topical_authority_map ? (
+                      <>
+                        {report.topical_authority_map.core_topics?.length > 0 && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {report.topical_authority_map.core_topics.map((t, i) => (
+                              <div key={i} className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-bold text-cyan-300">{t.topic}</span>
+                                  <span className="text-xs text-yellow-300">Authority: {t.authority_score}/100</span>
+                                </div>
+                                <div className="text-xs text-gray-400 mt-1">Coverage: {t.coverage_score}% • Gap: {t.gap_score}%</div>
+                                {t.recommendations?.length > 0 && <div className="mt-2 text-xs text-green-300">💡 {t.recommendations.join(', ')}</div>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {report.topical_authority_map.topic_clusters?.length > 0 && (
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                            <span className="text-gray-400 text-sm">📊 Topic Clusters:</span>
+                            <div className="mt-2 space-y-2">
+                              {report.topical_authority_map.topic_clusters.map((c, i) => (
+                                <div key={i} className="bg-white/5 p-2 rounded-lg text-xs">
+                                  <span className="text-cyan-300 font-semibold">{c.cluster_name}</span>
+                                  <span className="text-gray-400 ml-2">({c.priority})</span>
+                                  <div className="text-gray-400">{c.keywords?.join(', ')}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">No topical authority data available</div>
+                    )}
+                  </div>
+                )}
+
+                {/* ===== TAB 6: EEAT ===== */}
+                {activeTab === 'eeat' && (
+                  <div className="space-y-4">
+                    {report.eeat_score ? (
+                      <>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center">
+                            <div className="text-2xl font-bold text-cyan-300">{report.eeat_score.experience || 0}/100</div>
+                            <div className="text-xs text-gray-400">💪 Experience</div>
+                          </div>
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center">
+                            <div className="text-2xl font-bold text-yellow-300">{report.eeat_score.expertise || 0}/100</div>
+                            <div className="text-xs text-gray-400">🧠 Expertise</div>
+                          </div>
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center">
+                            <div className="text-2xl font-bold text-purple-300">{report.eeat_score.authoritativeness || 0}/100</div>
+                            <div className="text-xs text-gray-400">🏆 Authoritativeness</div>
+                          </div>
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center">
+                            <div className="text-2xl font-bold text-green-300">{report.eeat_score.trustworthiness || 0}/100</div>
+                            <div className="text-xs text-gray-400">🛡️ Trustworthiness</div>
+                          </div>
+                        </div>
+                        <div className="bg-gradient-to-r from-green-500/10 to-purple-500/10 p-5 rounded-2xl border border-green-500/20 text-center">
+                          <div className="text-3xl font-bold text-green-400">{report.eeat_score.overall_score || 0}/100</div>
+                          <div className="text-gray-400">Overall EEAT Score • Grade: <span className="text-yellow-300">{report.eeat_score.grade || 'N/A'}</span></div>
+                        </div>
+                        {report.eeat_score.recommendations?.length > 0 && (
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                            <span className="text-gray-400 text-sm">💡 Recommendations:</span>
+                            <ul className="list-disc pl-5 mt-1 text-sm text-cyan-300">
+                              {report.eeat_score.recommendations.map((r, i) => <li key={i}>{r}</li>)}
+                            </ul>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">No EEAT data available</div>
+                    )}
+                  </div>
+                )}
+
+                {/* ===== TAB 7: SNIPPET ===== */}
+                {activeTab === 'snippet' && (
+                  <div className="space-y-4">
+                    {report.featured_snippet_opportunities ? (
+                      <>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center">
+                            <div className="text-2xl font-bold text-cyan-300">{report.featured_snippet_opportunities.eligibility_score || 0}%</div>
+                            <div className="text-xs text-gray-400">Eligibility Score</div>
+                          </div>
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center">
+                            <div className="text-2xl font-bold text-yellow-300">{report.featured_snippet_opportunities.format_type || 'N/A'}</div>
+                            <div className="text-xs text-gray-400">Format Type</div>
+                          </div>
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center">
+                            <div className="text-2xl font-bold text-green-300">{report.featured_snippet_opportunities.priority || 'N/A'}</div>
+                            <div className="text-xs text-gray-400">Priority</div>
+                          </div>
+                        </div>
+
+                        {report.featured_snippet_opportunities.current_snippet && (
+                          <div className="bg-purple-500/10 p-4 rounded-2xl border border-purple-500/20">
+                            <span className="text-gray-400 text-sm">📋 Current Snippet:</span>
+                            <p className="text-cyan-300 mt-1">{report.featured_snippet_opportunities.current_snippet}</p>
+                          </div>
+                        )}
+
+                        {report.featured_snippet_opportunities.optimization_tips?.length > 0 && (
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                            <span className="text-gray-400 text-sm">⚡ Optimization Tips:</span>
+                            <ul className="list-disc pl-5 mt-1 text-sm text-yellow-300">
+                              {report.featured_snippet_opportunities.optimization_tips.map((t, i) => <li key={i}>{t}</li>)}
+                            </ul>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">No featured snippet data available</div>
+                    )}
+                  </div>
+                )}
+
+                {/* ===== TAB 8: BRIEF ===== */}
+                {activeTab === 'brief' && (
+                  <div className="space-y-4">
+                    {report.content_brief ? (
+                      <>
+                        <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-5 rounded-2xl border border-purple-500/20">
+                          <h3 className="font-bold text-purple-300 mb-2">📝 {report.content_brief.title || 'N/A'}</h3>
+                          <p className="text-gray-400 text-sm">{report.content_brief.meta_description || 'N/A'}</p>
+                          <div className="flex flex-wrap gap-3 mt-3 text-xs">
+                            <span className="bg-white/5 px-3 py-1 rounded-full">🎯 {report.content_brief.target_audience || 'N/A'}</span>
+                            <span className="bg-white/5 px-3 py-1 rounded-full">📄 {report.content_brief.content_goal || 'N/A'}</span>
+                            <span className="bg-white/5 px-3 py-1 rounded-full">📊 {report.content_brief.word_count_recommendation || 'N/A'} words</span>
+                          </div>
+                        </div>
+
+                        {report.content_brief.h2_headings?.length > 0 && (
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                            <span className="text-gray-400 text-sm">📌 H2 Headings:</span>
+                            <div className="mt-2 space-y-2">
+                              {report.content_brief.h2_headings.map((h, i) => (
+                                <div key={i} className="bg-white/5 p-2 rounded-lg text-xs">
+                                  <span className="text-cyan-300 font-semibold">{h.heading}</span>
+                                  <span className="text-gray-400 ml-2">({h.priority})</span>
+                                  <div className="text-gray-400">{h.key_points?.join(', ')}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {report.content_brief.recommended_sections?.length > 0 && (
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                            <span className="text-gray-400 text-sm">📋 Recommended Sections:</span>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                              {report.content_brief.recommended_sections.map((s, i) => <span key={i} className="bg-blue-500/20 px-3 py-1 rounded-full text-xs border border-blue-500/30">{s}</span>)}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">No content brief available</div>
+                    )}
+                  </div>
+                )}
+
+                {/* ===== TAB 9: SCHEMA ===== */}
+                {activeTab === 'schema' && (
+                  <div className="space-y-4">
+                    {report.schema_generator ? (
+                      <>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                          {['faq', 'product', 'review', 'how_to', 'article', 'local_business'].map((type) => (
+                            report.schema_generator[type] && (
+                              <div key={type} className="bg-white/5 p-3 rounded-xl border border-white/10 text-center">
+                                <div className="text-xs text-gray-400 uppercase">{type.replace('_', ' ')}</div>
+                                <button onClick={() => copyToClipboard(report.schema_generator[type])} className="text-cyan-300 text-xs hover:underline mt-1 flex items-center justify-center gap-1"><Copy size={12}/> Copy</button>
+                              </div>
+                            )
+                          ))}
+                        </div>
+                        {report.schema_generator.complete_json && (
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-400 text-sm">📦 Complete JSON-LD:</span>
+                              <button onClick={() => copyToClipboard(report.schema_generator.complete_json)} className="text-cyan-300 text-xs hover:underline flex items-center gap-1"><Copy size={12}/> Copy All</button>
+                            </div>
+                            <pre className="text-xs text-gray-300 mt-2 overflow-x-auto bg-black/30 p-3 rounded-lg max-h-40 overflow-y-auto">{report.schema_generator.complete_json.substring(0, 500)}...</pre>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">No schema data available</div>
+                    )}
+                  </div>
+                )}
+
+                {/* ===== TAB 10: BACKLINK ===== */}
+                {activeTab === 'backlink' && (
+                  <div className="space-y-4">
+                    {report.brand_backlink_analysis ? (
+                      <>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center">
+                            <div className="text-2xl font-bold text-cyan-300">{report.brand_backlink_analysis.total_opportunities || 'N/A'}</div>
+                            <div className="text-xs text-gray-400">Total Opportunities</div>
+                          </div>
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center">
+                            <div className="text-2xl font-bold text-yellow-300">{report.brand_backlink_analysis.brand_mentions?.length || 'N/A'}</div>
+                            <div className="text-xs text-gray-400">Brand Mentions</div>
+                          </div>
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center">
+                            <div className="text-2xl font-bold text-green-300">{report.brand_backlink_analysis.backlink_gap?.length || 'N/A'}</div>
+                            <div className="text-xs text-gray-400">Backlink Gap</div>
+                          </div>
+                        </div>
+
+                        {report.brand_backlink_analysis.backlink_gap?.length > 0 && (
+                          <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                            <span className="text-gray-400 text-sm">🔗 Backlink Gap Analysis:</span>
+                            <div className="mt-2 space-y-2">
+                              {report.brand_backlink_analysis.backlink_gap.map((g, i) => (
+                                <div key={i} className="bg-white/5 p-2 rounded-lg text-xs">
+                                  <span className="text-cyan-300 font-semibold">{g.competitor}</span>
+                                  <span className="text-gray-400 ml-2">Backlinks: {g.backlinks}</span>
+                                  <span className="text-yellow-300 ml-2">Opportunity: {g.opportunity_score}/100</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">No backlink data available</div>
+                    )}
+                  </div>
+                )}
+
+                {/* ===== TAB 11: SEO (Complete) ===== */}
                 {activeTab === 'seo' && (
                   <div className="space-y-6">
-                    <div className="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 p-6 rounded-2xl border border-emerald-500/20">
-                      <h3 className="font-bold text-emerald-300 flex items-center gap-2 text-lg mb-4"><Tag size={20}/> Complete SEO Metadata</h3>
-                      <div className="space-y-4">
-                        <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                          <span className="text-gray-400 text-xs uppercase">Title Tag</span>
-                          <p className="text-cyan-300 font-medium">{report.seo_metadata?.title_tag || 'Not Generated Yet'}</p>
-                        </div>
-                        <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                          <span className="text-gray-400 text-xs uppercase">Meta Description</span>
-                          <p className="text-gray-300">{report.seo_metadata?.meta_description || 'Not Generated Yet'}</p>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {report.seo_metadata ? (
+                      <div className="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 p-6 rounded-2xl border border-emerald-500/20">
+                        <h3 className="font-bold text-emerald-300 flex items-center gap-2 text-lg mb-4"><Tag size={20}/> Complete SEO Metadata</h3>
+                        <div className="space-y-4">
                           <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                            <span className="text-gray-400 text-xs uppercase">URL Slug</span>
-                            <p className="text-purple-300 font-medium">{report.seo_metadata?.url_slug || 'Not Generated Yet'}</p>
+                            <span className="text-gray-400 text-xs uppercase">Title Tag</span>
+                            <p className="text-cyan-300 font-medium">{report.seo_metadata.title_tag || 'Not Generated Yet'}</p>
                           </div>
                           <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                            <span className="text-gray-400 text-xs uppercase">Focus Keyword</span>
-                            <p className="text-yellow-300 font-medium">{report.seo_metadata?.focus_keyword || 'Not Generated Yet'}</p>
+                            <span className="text-gray-400 text-xs uppercase">Meta Description</span>
+                            <p className="text-gray-300">{report.seo_metadata.meta_description || 'Not Generated Yet'}</p>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                              <span className="text-gray-400 text-xs uppercase">URL Slug</span>
+                              <p className="text-purple-300 font-medium">{report.seo_metadata.url_slug || 'Not Generated Yet'}</p>
+                            </div>
+                            <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                              <span className="text-gray-400 text-xs uppercase">Focus Keyword</span>
+                              <p className="text-yellow-300 font-medium">{report.seo_metadata.focus_keyword || 'Not Generated Yet'}</p>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-white/5 p-4 rounded-xl border border-white/10 text-center">
+                              <span className="text-gray-400 text-xs uppercase">H1 Tag</span>
+                              <p className="text-green-300 font-medium">{report.seo_metadata.h1_tag || 'Not Generated Yet'}</p>
+                            </div>
+                            <div className="bg-white/5 p-4 rounded-xl border border-white/10 text-center">
+                              <span className="text-gray-400 text-xs uppercase">SEO Grade</span>
+                              <p className="text-orange-300 font-bold text-xl">{report.seo_metadata.seo_grade || 'N/A'}</p>
+                            </div>
+                            <div className="bg-white/5 p-4 rounded-xl border border-white/10 text-center">
+                              <span className="text-gray-400 text-xs uppercase">Keyword Density</span>
+                              <p className="text-cyan-300 font-bold text-xl">{report.seo_metadata.keyword_density || 'N/A'}%</p>
+                            </div>
+                          </div>
+                          <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                            <span className="text-gray-400 text-xs uppercase">Readability Score</span>
+                            <p className="text-green-300 font-bold text-xl">{report.seo_metadata.readability_score || 'N/A'}/100</p>
                           </div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="bg-white/5 p-4 rounded-xl border border-white/10 text-center">
-                            <span className="text-gray-400 text-xs uppercase">H1 Tag</span>
-                            <p className="text-green-300 font-medium">{report.seo_metadata?.h1_tag || 'Not Generated Yet'}</p>
-                          </div>
-                          <div className="bg-white/5 p-4 rounded-xl border border-white/10 text-center">
-                            <span className="text-gray-400 text-xs uppercase">SEO Grade</span>
-                            <p className="text-orange-300 font-bold text-xl">{report.seo_metadata?.seo_grade || 'N/A'}</p>
-                          </div>
-                          <div className="bg-white/5 p-4 rounded-xl border border-white/10 text-center">
-                            <span className="text-gray-400 text-xs uppercase">Keyword Density</span>
-                            <p className="text-cyan-300 font-bold text-xl">{report.seo_metadata?.keyword_density || 'N/A'}%</p>
-                          </div>
-                        </div>
-                        <div className="bg-white/5 p-4 rounded-xl border border-white/10">
-                          <span className="text-gray-400 text-xs uppercase">Readability Score</span>
-                          <p className="text-green-300 font-bold text-xl">{report.seo_metadata?.readability_score || 'N/A'}/100</p>
-                        </div>
+                        <button onClick={() => copyToClipboard(JSON.stringify(report.seo_metadata, null, 2))} className="mt-4 text-xs bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg flex items-center gap-2"><Copy size={14}/> Copy All SEO Metadata</button>
                       </div>
-                    </div>
-
-                    {/* Content Brief */}
-                    {report.content_brief && (
-                      <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                        <h3 className="font-bold text-purple-300 mb-3">📝 Content Brief</h3>
-                        <div className="space-y-2 text-sm">
-                          <div><span className="text-gray-400">Title:</span> {report.content_brief.title || 'N/A'}</div>
-                          <div><span className="text-gray-400">Meta:</span> {report.content_brief.meta_description || 'N/A'}</div>
-                          <div><span className="text-gray-400">Audience:</span> {report.content_brief.target_audience || 'N/A'}</div>
-                          <div><span className="text-gray-400">Word Count:</span> {report.content_brief.word_count_recommendation || 'N/A'}</div>
-                        </div>
-                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">No SEO metadata available</div>
                     )}
                   </div>
                 )}
 
-                {/* === OTHER TABS (NLP, Topical, EEAT, Snippet, Brief, Schema, Backlink) === */}
-                {/* These tabs follow same pattern as before with their respective data */}
-                {/* I'm keeping them compact to avoid length issues */}
-
               </div>
+
+              {/* ===== COMMON SECTIONS ===== */}
 
               {/* FAQ */}
               {report.faq_questions?.length > 0 && (
                 <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                  <h3 className="font-bold text-yellow-300 mb-3">❓ FAQ Schema (Top 4)</h3>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-bold text-yellow-300">❓ FAQ Schema (Top 4)</h3>
+                    <button onClick={() => copyToClipboard(report.faq_questions.slice(0, 4).join('\n'))} className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg flex items-center gap-1">
+                      {copied ? <CheckCircle size={12} className="text-green-400"/> : <Copy size={12}/>}
+                      {copied ? 'Copied!' : 'Copy All'}
+                    </button>
+                  </div>
                   <ul className="list-disc pl-5 space-y-1.5 text-gray-300 text-sm">
                     {report.faq_questions.slice(0, 4).map((q, i) => <li key={i}>{q}</li>)}
                   </ul>
@@ -546,13 +861,17 @@ export default function Home() {
                 </div>
               )}
 
+              {/* Footer */}
               <p className="text-xs text-gray-500 text-center pt-4 border-t border-white/5">
                 RankForge ULTIMATE Edition v7.0 | 14 Enterprise Features: AI Intent • SERP Analysis • NLP • Topical Map • Internal Links • EEAT • Featured Snippet • AI Overview • PAA • Content Brief • Schema • Cannibalization • Brand Backlink • Freshness
+                <br />
+                ⚠️ Do not copy-paste raw data. Use these human-edited insights to create original content.
               </p>
             </motion.div>
           )}
         </AnimatePresence>
 
+        {/* Empty State */}
         {!loading && !report && !error && (
           <div className="text-center py-20 text-gray-500">
             <div className="text-7xl mb-4">⚡</div>
