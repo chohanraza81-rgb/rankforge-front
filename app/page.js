@@ -1,6 +1,11 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { Download, FileText, Loader2, CheckCircle, Target, TrendingUp, Zap, Lightbulb } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Download, FileText, Loader2, CheckCircle, Target, 
+  TrendingUp, Zap, Lightbulb, Sparkles, Shield, 
+  ChevronRight, Copy, ExternalLink 
+} from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -11,6 +16,7 @@ export default function Home() {
   const [report, setReport] = useState(null);
   const [error, setError] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
+  const [copied, setCopied] = useState(false);
   const intervalRef = useRef(null);
   const reportRef = useRef(null);
 
@@ -20,6 +26,7 @@ export default function Home() {
     };
   }, []);
 
+  // ---------- PDF Export ----------
   const exportPDF = async () => {
     if (!reportRef.current) return;
     
@@ -57,46 +64,43 @@ export default function Home() {
     }
   };
 
-  // ---------- HELPER FUNCTION: Filter Competitors ----------
+  // ---------- Copy to Clipboard ----------
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Copy failed:', err);
+    }
+  };
+
+  // ---------- Filter Competitors (Remove Social Media) ----------
   const filterCompetitors = (competitors) => {
     if (!competitors || !Array.isArray(competitors)) return [];
     
-    // Blacklist: Domains/Platforms to remove
     const blacklist = [
-      'reddit.com',
-      'youtube.com',
-      'youtu.be',
-      'facebook.com',
-      'fb.com',
-      'instagram.com',
-      'twitter.com',
-      'x.com',
-      'tiktok.com',
-      'linkedin.com',
-      'quora.com',
-      'pinterest.com',
-      'medium.com',
-      'blogspot.com', // Optional: Remove if you want only high-authority
+      'reddit.com', 'youtube.com', 'youtu.be', 'facebook.com', 'fb.com',
+      'instagram.com', 'twitter.com', 'x.com', 'tiktok.com', 'linkedin.com',
+      'quora.com', 'pinterest.com', 'medium.com'
     ];
 
     return competitors.filter(comp => {
-      // Check if the link contains any blacklisted domain
       if (comp.link) {
         const linkLower = comp.link.toLowerCase();
         for (const domain of blacklist) {
-          if (linkLower.includes(domain)) {
-            return false; // Remove this competitor
-          }
+          if (linkLower.includes(domain)) return false;
         }
       }
-      // Also filter out generic titles (optional)
-      if (comp.title && comp.title.toLowerCase().includes('reddit')) return false;
-      if (comp.title && comp.title.toLowerCase().includes('youtube')) return false;
-      
-      return true; // Keep this competitor
+      if (comp.title) {
+        const titleLower = comp.title.toLowerCase();
+        if (titleLower.includes('reddit') || titleLower.includes('youtube')) return false;
+      }
+      return true;
     });
   };
 
+  // ---------- Handle Generate ----------
   const handleGenerate = async () => {
     if (!keyword.trim()) {
       setError('Please enter a keyword.');
@@ -133,7 +137,6 @@ export default function Home() {
       const data = await res.json();
 
       if (data.cached) {
-        // --- APPLY FILTER ON CACHED DATA ---
         const filteredData = { ...data.data };
         if (filteredData.competitor_table) {
           filteredData.competitor_table = filterCompetitors(filteredData.competitor_table);
@@ -167,7 +170,6 @@ export default function Home() {
           const statusData = await statusRes.json();
 
           if (statusData.status === 'completed') {
-            // --- APPLY FILTER ON NEW DATA ---
             const filteredData = { ...statusData.data };
             if (filteredData.competitor_table) {
               filteredData.competitor_table = filterCompetitors(filteredData.competitor_table);
@@ -204,20 +206,32 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 text-transparent bg-clip-text inline-block">
-            RankForge
-          </h1>
-          <span className="ml-3 text-xs font-semibold bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1.5 rounded-full border border-purple-500/50 shadow-lg shadow-purple-500/20">
-            ENTERPRISE v3.0
-          </span>
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="mb-8"
+        >
+          <div className="flex items-center gap-3">
+            <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 text-transparent bg-clip-text">
+              RankForge
+            </h1>
+            <span className="text-xs font-semibold bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1.5 rounded-full border border-purple-500/50 shadow-lg shadow-purple-500/20 animate-pulse">
+              V4 ENTERPRISE
+            </span>
+          </div>
           <p className="text-gray-400 mt-2 text-sm md:text-base">
-            Enterprise-grade SEO intelligence. AI analyzes competitors, finds gaps, and gives you actionable strategies.
+            Enterprise-grade SEO intelligence. AI analyzes competitors, finds gaps, and delivers actionable strategies.
           </p>
-        </div>
+        </motion.div>
 
         {/* Input Section */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="flex flex-col sm:flex-row gap-4 mb-6"
+        >
           <input
             type="text"
             value={keyword}
@@ -238,179 +252,246 @@ export default function Home() {
                 Analyzing...
               </>
             ) : (
-              '🚀 Generate Brief'
+              <>
+                <Sparkles size={18} /> Generate Brief
+              </>
             )}
           </button>
-        </div>
+        </motion.div>
 
         {/* Status & Progress */}
-        {statusMessage && loading && (
-          <div className="mb-3 text-sm text-cyan-300 text-center">{statusMessage}</div>
-        )}
+        <AnimatePresence>
+          {statusMessage && loading && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-3 text-sm text-cyan-300 text-center"
+            >
+              {statusMessage}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-2xl text-red-300 text-sm">
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-2xl text-red-300 text-sm"
+          >
             ⚠️ {error}
-          </div>
+          </motion.div>
         )}
 
         {loading && (
           <div className="mb-8 space-y-2">
             <div className="w-full bg-white/10 rounded-full h-2.5 overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-cyan-400 to-purple-500 transition-all duration-500 rounded-full" style={{ width: `${progress}%` }} />
+              <motion.div 
+                className="h-full bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full"
+                style={{ width: `${progress}%` }}
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.5 }}
+              />
             </div>
             <p className="text-xs text-gray-400 text-right">{progress}% complete</p>
           </div>
         )}
 
         {/* Premium Report */}
-        {report && (
-          <div ref={reportRef} className="bg-slate-900/50 backdrop-blur-xl rounded-3xl border border-white/10 p-6 md:p-8 space-y-6">
-            <div className="flex flex-wrap gap-3 justify-between items-center border-b border-white/10 pb-4">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="w-5 h-5 text-green-400" />
-                <h2 className="text-xl font-semibold text-green-400">
-                  Premium Report: <span className="text-white font-mono">{keyword}</span>
-                </h2>
+        <AnimatePresence>
+          {report && (
+            <motion.div 
+              ref={reportRef}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="bg-slate-900/50 backdrop-blur-xl rounded-3xl border border-white/10 p-6 md:p-8 space-y-6"
+            >
+              {/* Report Header */}
+              <div className="flex flex-wrap gap-3 justify-between items-center border-b border-white/10 pb-4">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                  <h2 className="text-xl font-semibold text-green-400">
+                    Premium Report: <span className="text-white font-mono">{keyword}</span>
+                  </h2>
+                </div>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={exportPDF} 
+                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105 transition rounded-xl text-sm flex items-center gap-2 shadow-lg shadow-purple-500/30"
+                  >
+                    <FileText size={16} /> Export PDF
+                  </button>
+                  <button 
+                    onClick={() => window.print()} 
+                    className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm flex items-center gap-2"
+                  >
+                    <Download size={16} /> Print
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-3">
-                <button onClick={exportPDF} className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105 transition rounded-xl text-sm flex items-center gap-2 shadow-lg shadow-purple-500/30">
-                  <FileText size={16} /> Export PDF
-                </button>
-                <button onClick={() => window.print()} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm flex items-center gap-2">
-                  <Download size={16} /> Print
-                </button>
-              </div>
-            </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                <p className="text-gray-400 text-xs flex items-center gap-1"><Target size={14}/> Search Intent</p>
-                <p className="text-xl font-bold text-cyan-300 mt-1">{report.keyword_intent || 'Informational'}</p>
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                  <p className="text-gray-400 text-xs flex items-center gap-1"><Target size={14}/> Search Intent</p>
+                  <p className="text-xl font-bold text-cyan-300 mt-1">{report.keyword_intent || 'Informational'}</p>
+                </div>
+                <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                  <p className="text-gray-400 text-xs flex items-center gap-1"><TrendingUp size={14}/> Content Score</p>
+                  <p className="text-xl font-bold text-yellow-300 mt-1">{report.content_score || 85}/100</p>
+                </div>
+                <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
+                  <p className="text-gray-400 text-xs flex items-center gap-1"><Zap size={14}/> Readability</p>
+                  <p className="text-xl font-bold text-green-300 mt-1">{report.readability_avg || 'Medium'}</p>
+                </div>
               </div>
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                <p className="text-gray-400 text-xs flex items-center gap-1"><TrendingUp size={14}/> Content Score</p>
-                <p className="text-xl font-bold text-yellow-300 mt-1">{report.content_score || 85}/100</p>
-              </div>
-              <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                <p className="text-gray-400 text-xs flex items-center gap-1"><Zap size={14}/> Readability</p>
-                <p className="text-xl font-bold text-green-300 mt-1">{report.readability_avg || 'Medium'}</p>
-              </div>
-            </div>
 
-            {/* Content Recommendations */}
-            {report.content_recommendations && (
-              <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-5 rounded-2xl border border-purple-500/20">
-                <h3 className="font-bold text-purple-300 flex items-center gap-2 mb-3">
-                  <Lightbulb size={18}/> Content Strategy
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                  <div><span className="text-gray-400">📌 Title:</span> {report.content_recommendations.title || 'N/A'}</div>
-                  <div><span className="text-gray-400">📝 Meta:</span> {report.content_recommendations.meta_description || 'N/A'}</div>
-                  <div><span className="text-gray-400">🎯 Audience:</span> {report.content_recommendations.target_audience || 'N/A'}</div>
-                  <div><span className="text-gray-400">📄 Length:</span> {report.content_recommendations.content_length || 'N/A'}</div>
-                  <div><span className="text-gray-400">🎤 Tone:</span> {report.content_recommendations.tone || 'N/A'}</div>
-                  <div className="md:col-span-2">
-                    <span className="text-gray-400">💡 SEO Tips:</span>
-                    <ul className="list-disc pl-5 mt-1">
-                      {report.content_recommendations.seo_tips?.map((tip, i) => <li key={i}>{tip}</li>)}
-                    </ul>
+              {/* Content Recommendations */}
+              {report.content_recommendations && (
+                <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-5 rounded-2xl border border-purple-500/20">
+                  <h3 className="font-bold text-purple-300 flex items-center gap-2 mb-3">
+                    <Lightbulb size={18}/> Content Strategy
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    <div><span className="text-gray-400">📌 Title:</span> {report.content_recommendations.title || 'N/A'}</div>
+                    <div><span className="text-gray-400">📝 Meta:</span> {report.content_recommendations.meta_description || 'N/A'}</div>
+                    <div><span className="text-gray-400">🎯 Audience:</span> {report.content_recommendations.target_audience || 'N/A'}</div>
+                    <div><span className="text-gray-400">📄 Length:</span> {report.content_recommendations.content_length || 'N/A'}</div>
+                    <div><span className="text-gray-400">🎤 Tone:</span> {report.content_recommendations.tone || 'N/A'}</div>
+                    <div className="md:col-span-2">
+                      <span className="text-gray-400">💡 SEO Tips:</span>
+                      <ul className="list-disc pl-5 mt-1">
+                        {report.content_recommendations.seo_tips?.map((tip, i) => <li key={i}>{tip}</li>)}
+                      </ul>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* --- 1. MISSING HEADINGS (KEEP 6) --- */}
-            {report.missing_headings?.length > 0 && (
-              <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                <h3 className="font-bold text-purple-300 mb-3">📌 Missing Headings (Content Gaps)</h3>
-                <ul className="list-disc pl-5 space-y-1.5 text-gray-300 text-sm">
-                  {report.missing_headings.map((h, i) => <li key={i}>{h}</li>)}
-                </ul>
-              </div>
-            )}
+              {/* Missing Headings */}
+              {report.missing_headings?.length > 0 && (
+                <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
+                  <h3 className="font-bold text-purple-300 mb-3">📌 Missing Headings (Content Gaps)</h3>
+                  <ul className="list-disc pl-5 space-y-1.5 text-gray-300 text-sm">
+                    {report.missing_headings.map((h, i) => <li key={i}>{h}</li>)}
+                  </ul>
+                </div>
+              )}
 
-            {/* --- 2. FAQ QUESTIONS (LIMIT TO 4) --- */}
-            {report.faq_questions?.length > 0 && (
-              <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                <h3 className="font-bold text-yellow-300 mb-3">❓ FAQ Schema (Top 4 Questions)</h3>
-                <ul className="list-disc pl-5 space-y-1.5 text-gray-300 text-sm">
-                  {/* ✅ SLICE: Show only first 4 FAQs */}
-                  {report.faq_questions.slice(0, 4).map((q, i) => <li key={i}>{q}</li>)}
-                </ul>
-                {report.faq_questions.length > 4 && (
-                  <p className="text-xs text-gray-500 mt-2">Showing 4 out of {report.faq_questions.length} questions</p>
-                )}
-              </div>
-            )}
+              {/* FAQ - Only 4 */}
+              {report.faq_questions?.length > 0 && (
+                <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-bold text-yellow-300">❓ FAQ Schema (Top 4)</h3>
+                    <button 
+                      onClick={() => copyToClipboard(report.faq_questions.slice(0, 4).join('\n'))}
+                      className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg flex items-center gap-1"
+                    >
+                      {copied ? <CheckCircle size={12} className="text-green-400"/> : <Copy size={12}/>}
+                      {copied ? 'Copied!' : 'Copy All'}
+                    </button>
+                  </div>
+                  <ul className="list-disc pl-5 space-y-1.5 text-gray-300 text-sm">
+                    {report.faq_questions.slice(0, 4).map((q, i) => <li key={i}>{q}</li>)}
+                  </ul>
+                  {report.faq_questions.length > 4 && (
+                    <p className="text-xs text-gray-500 mt-2">Showing 4 out of {report.faq_questions.length} questions</p>
+                  )}
+                </div>
+              )}
 
-            {/* --- 3. COMPETITOR TABLE (FILTERED) --- */}
-            {report.competitor_table?.length > 0 && (
-              <div className="bg-white/5 p-5 rounded-2xl border border-white/10 overflow-x-auto">
-                <h3 className="font-bold text-orange-300 mb-3">🏆 Competitor Battle Card (Filtered)</h3>
-                <p className="text-xs text-gray-400 mb-2">*Social media (Reddit, YouTube, etc.) removed</p>
-                <table className="w-full text-sm min-w-[400px]">
-                  <thead>
-                    <tr className="border-b border-white/10 text-left text-gray-400">
-                      <th className="p-2">Rank</th>
-                      <th className="p-2">Title</th>
-                      <th className="p-2">Strength</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {report.competitor_table.map((c, i) => (
-                      <tr key={i} className="border-b border-white/5 hover:bg-white/5">
-                        <td className="p-2 text-cyan-300">#{c.rank}</td>
-                        <td className="p-2 truncate max-w-[180px]">{c.title}</td>
-                        <td className="p-2 text-green-300 text-xs">{c.strength}</td>
+              {/* Competitor Battle - Filtered */}
+              {report.competitor_table?.length > 0 && (
+                <div className="bg-white/5 p-5 rounded-2xl border border-white/10 overflow-x-auto">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-bold text-orange-300">🏆 Competitor Battle Card</h3>
+                    <span className="text-xs text-gray-400">*Social media removed</span>
+                  </div>
+                  <table className="w-full text-sm min-w-[400px]">
+                    <thead>
+                      <tr className="border-b border-white/10 text-left text-gray-400">
+                        <th className="p-2">Rank</th>
+                        <th className="p-2">Title</th>
+                        <th className="p-2">Strength</th>
                       </tr>
+                    </thead>
+                    <tbody>
+                      {report.competitor_table.map((c, i) => (
+                        <tr key={i} className="border-b border-white/5 hover:bg-white/5">
+                          <td className="p-2 text-cyan-300">#{c.rank}</td>
+                          <td className="p-2 truncate max-w-[180px]">{c.title}</td>
+                          <td className="p-2 text-green-300 text-xs">{c.strength}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Authority Links */}
+              {report.authority_links?.length > 0 && (
+                <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
+                  <h3 className="font-bold text-blue-300 mb-3">🔗 Authority Citations</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {report.authority_links.map((l, i) => (
+                      <a 
+                        key={i} 
+                        href={l} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="text-xs bg-blue-500/20 hover:bg-blue-500/40 px-3 py-1.5 rounded-full transition truncate max-w-[250px] border border-blue-500/20 flex items-center gap-1"
+                      >
+                        {l.replace(/^https?:\/\//, '').replace(/\/.*$/, '').slice(0, 30)}
+                        <ExternalLink size={10} />
+                      </a>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* Authority Links */}
-            {report.authority_links?.length > 0 && (
-              <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                <h3 className="font-bold text-blue-300 mb-3">🔗 Authority Citations</h3>
-                <div className="flex flex-wrap gap-2">
-                  {report.authority_links.map((l, i) => (
-                    <a key={i} href={l} target="_blank" rel="noreferrer" className="text-xs bg-blue-500/20 hover:bg-blue-500/40 px-3 py-1.5 rounded-full transition truncate max-w-[250px] border border-blue-500/20">
-                      {l.replace(/^https?:\/\//, '').replace(/\/.*$/, '').slice(0, 30)}
-                    </a>
-                  ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* SEO Metadata */}
-            {report.seo_metadata && (
-              <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                <h3 className="font-bold text-emerald-300 mb-3">🏷️ SEO Metadata</h3>
-                <div className="space-y-2 text-sm">
-                  <div><span className="text-gray-400">Title Tag:</span> {report.seo_metadata.title_tag || 'N/A'}</div>
-                  <div><span className="text-gray-400">Meta Description:</span> {report.seo_metadata.meta_description || 'N/A'}</div>
-                  <div><span className="text-gray-400">URL Slug:</span> {report.seo_metadata.url_slug || 'N/A'}</div>
-                  <div><span className="text-gray-400">Focus Keyword:</span> <span className="text-yellow-300">{report.seo_metadata.focus_keyword || 'N/A'}</span></div>
+              {/* SEO Metadata */}
+              {report.seo_metadata && (
+                <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-bold text-emerald-300">🏷️ SEO Metadata</h3>
+                    <button 
+                      onClick={() => copyToClipboard(JSON.stringify(report.seo_metadata, null, 2))}
+                      className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg flex items-center gap-1"
+                    >
+                      <Copy size={12}/> Copy All
+                    </button>
+                  </div>
+                  <div className="space-y-2 text-sm">
+                    <div><span className="text-gray-400">Title Tag:</span> {report.seo_metadata.title_tag || 'N/A'}</div>
+                    <div><span className="text-gray-400">Meta Description:</span> {report.seo_metadata.meta_description || 'N/A'}</div>
+                    <div><span className="text-gray-400">URL Slug:</span> {report.seo_metadata.url_slug || 'N/A'}</div>
+                    <div><span className="text-gray-400">Focus Keyword:</span> <span className="text-yellow-300">{report.seo_metadata.focus_keyword || 'N/A'}</span></div>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <p className="text-xs text-gray-500 text-center pt-4 border-t border-white/5">
-              ⚠️ Do not copy-paste raw data. Use these human-edited insights to create original content.
-            </p>
-          </div>
-        )}
+              {/* Footer */}
+              <p className="text-xs text-gray-500 text-center pt-4 border-t border-white/5">
+                ⚠️ Do not copy-paste raw data. Use these human-edited insights to create original content.
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Empty State */}
         {!loading && !report && !error && (
-          <div className="text-center py-20 text-gray-500">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8 }}
+            className="text-center py-20 text-gray-500"
+          >
             <div className="text-7xl mb-4">🧠</div>
             <p className="text-xl font-semibold text-gray-300">Enter a keyword to generate a premium SEO brief</p>
             <p className="text-sm text-gray-600 mt-2">Powered by GROQ, SerpAPI, and MongoDB</p>
-          </div>
+          </motion.div>
         )}
       </div>
     </div>
