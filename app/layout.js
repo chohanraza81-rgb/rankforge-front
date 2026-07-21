@@ -1,27 +1,21 @@
 import './globals.css';
 
 export const metadata = {
-  title: 'RankForge - Premium SEO Intelligence Suite v4.0',
-  description: 'Enterprise-grade content intelligence. Keyword Volume, Backlink Gap, Readability Score, Trend Forecast & more.',
-  keywords: 'SEO tool, content gap analysis, competitor research, keyword analysis, backlink analysis, content strategy, readability score',
+  title: 'RankForge V4 - Enterprise SEO Intelligence',
+  description: 'AI-powered competitor analysis and content strategy tool for professionals.',
+  keywords: 'SEO tool, content gap analysis, competitor research, keyword analysis, content strategy',
   openGraph: {
-    title: 'RankForge - Premium SEO Intelligence Suite v4.0',
-    description: 'AI-powered competitor analysis, keyword volume, backlink gap, and readability scoring tool.',
+    title: 'RankForge V4 - Enterprise SEO Intelligence',
+    description: 'AI-powered competitor analysis and content strategy tool.',
     url: 'https://rankforge-front.vercel.app',
     siteName: 'RankForge',
-    images: [
-      {
-        url: 'https://rankforge-front.vercel.app/og-image.png',
-        width: 1200,
-        height: 630,
-      },
-    ],
+    images: [{ url: 'https://rankforge-front.vercel.app/og-image.png', width: 1200, height: 630 }],
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'RankForge - Premium SEO Intelligence Suite v4.0',
-    description: 'AI-powered competitor analysis, keyword volume, and backlink gap analysis tool.',
+    title: 'RankForge V4 - Enterprise SEO Intelligence',
+    description: 'AI-powered competitor analysis and content strategy tool.',
     images: ['https://rankforge-front.vercel.app/og-image.png'],
   },
 };
