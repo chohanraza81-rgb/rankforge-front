@@ -9,7 +9,7 @@ import {
   Hash, Map, Video, Image, FolderTree, Layers, Brain,
   Compass, Globe, Clock, Star, ThumbsUp, MessageSquare,
   Share2, Eye, PenTool, FileCheck, AlertTriangle, RefreshCw,
-  Tag, FileText as FileIcon, Eye as EyeIcon, ListChecks
+  Tag, FileText as FileIcon, Eye as EyeIcon, ListChecks, HelpCircle
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -201,6 +201,7 @@ export default function Home() {
     }
   };
 
+  // ===== TABS CONFIGURATION =====
   const tabs = [
     { id: 'overview', label: '📊 Overview' },
     { id: 'intent', label: '🎯 Intent' },
@@ -218,58 +219,109 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
+        {/* ===== HEADER ===== */}
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 text-transparent bg-clip-text">RankForge</h1>
-            <span className="text-xs font-semibold bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1.5 rounded-full border border-purple-500/50 shadow-lg shadow-purple-500/20 animate-pulse">ULTIMATE V7</span>
+            <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 text-transparent bg-clip-text">
+              RankForge
+            </h1>
+            <span className="text-xs font-semibold bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1.5 rounded-full border border-purple-500/50 shadow-lg shadow-purple-500/20 animate-pulse">
+              ULTIMATE V7
+            </span>
           </div>
-          <p className="text-gray-400 mt-2 text-sm md:text-base">14 ULTIMATE Features: AI Intent • SERP Analysis • NLP • Topical Map • Internal Links • EEAT • Featured Snippet • AI Overview • PAA • Content Brief • Schema • Cannibalization • Brand Backlink • Freshness</p>
+          <p className="text-gray-400 mt-2 text-sm md:text-base">
+            14 ULTIMATE Features: AI Intent • SERP Analysis • NLP • Topical Map • Internal Links • EEAT • Featured Snippet • AI Overview • PAA • Content Brief • Schema • Cannibalization • Brand Backlink • Freshness
+          </p>
         </motion.div>
 
-        {/* Input Section */}
+        {/* ===== INPUT SECTION ===== */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row gap-4 mb-6">
-          <input type="text" value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleGenerate()} placeholder='Enter keyword (e.g., "best smartphones in Australia")' className="flex-1 p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-400" disabled={loading} />
-          <button onClick={handleGenerate} disabled={loading} className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105 transition-transform rounded-2xl font-bold shadow-lg shadow-purple-500/30 disabled:opacity-50 flex items-center justify-center gap-2 min-w-[200px]">
-            {loading ? <><Loader2 className="animate-spin h-5 w-5" /> Analyzing...</> : <><Sparkles size={18} /> Generate ULTIMATE Report</>}
+          <input 
+            type="text" 
+            value={keyword} 
+            onChange={(e) => setKeyword(e.target.value)} 
+            onKeyDown={(e) => e.key === 'Enter' && handleGenerate()} 
+            placeholder='Enter keyword (e.g., "best Samsung phone Pakistan")' 
+            className="flex-1 p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-400" 
+            disabled={loading} 
+          />
+          <button 
+            onClick={handleGenerate} 
+            disabled={loading} 
+            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105 transition-transform rounded-2xl font-bold shadow-lg shadow-purple-500/30 disabled:opacity-50 flex items-center justify-center gap-2 min-w-[200px]"
+          >
+            {loading ? (
+              <><Loader2 className="animate-spin h-5 w-5" /> Analyzing...</>
+            ) : (
+              <><Sparkles size={18} /> Generate ULTIMATE Report</>
+            )}
           </button>
         </motion.div>
 
-        {/* Status & Progress */}
-        {statusMessage && loading && <div className="mb-3 text-sm text-cyan-300 text-center">{statusMessage}</div>}
-        {error && <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-2xl text-red-300 text-sm">⚠️ {error}</div>}
+        {/* ===== STATUS & PROGRESS ===== */}
+        {statusMessage && loading && (
+          <div className="mb-3 text-sm text-cyan-300 text-center">{statusMessage}</div>
+        )}
+        {error && (
+          <div className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-2xl text-red-300 text-sm">
+            ⚠️ {error}
+          </div>
+        )}
 
         {loading && (
           <div className="mb-8 space-y-2">
             <div className="w-full bg-white/10 rounded-full h-2.5 overflow-hidden">
-              <motion.div className="h-full bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full" style={{ width: `${progress}%` }} initial={{ width: 0 }} animate={{ width: `${progress}%` }} />
+              <motion.div 
+                className="h-full bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full" 
+                style={{ width: `${progress}%` }} 
+                initial={{ width: 0 }} 
+                animate={{ width: `${progress}%` }} 
+              />
             </div>
             <p className="text-xs text-gray-400 text-right">{progress}% complete</p>
           </div>
         )}
 
-        {/* ULTIMATE Report */}
+        {/* ===== ULTIMATE REPORT ===== */}
         <AnimatePresence>
           {report && (
-            <motion.div ref={reportRef} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="bg-slate-900/50 backdrop-blur-xl rounded-3xl border border-white/10 p-6 md:p-8 space-y-6">
-              
-              {/* Report Header */}
+            <motion.div 
+              ref={reportRef} 
+              initial={{ opacity: 0, y: 30 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              className="bg-slate-900/50 backdrop-blur-xl rounded-3xl border border-white/10 p-6 md:p-8 space-y-6"
+            >
+              {/* ===== REPORT HEADER ===== */}
               <div className="flex flex-wrap gap-3 justify-between items-center border-b border-white/10 pb-4">
                 <div className="flex items-center gap-3">
                   <CheckCircle className="w-5 h-5 text-green-400" />
-                  <h2 className="text-xl font-semibold text-green-400">ULTIMATE Report: <span className="text-white font-mono">{keyword}</span></h2>
+                  <h2 className="text-xl font-semibold text-green-400">
+                    ULTIMATE Report: <span className="text-white font-mono">{keyword}</span>
+                  </h2>
                 </div>
                 <div className="flex gap-3">
-                  <button onClick={exportPDF} className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105 transition rounded-xl text-sm flex items-center gap-2 shadow-lg shadow-purple-500/30"><FileText size={16} /> Export PDF</button>
-                  <button onClick={() => window.print()} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm flex items-center gap-2"><Download size={16} /> Print</button>
+                  <button 
+                    onClick={exportPDF} 
+                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105 transition rounded-xl text-sm flex items-center gap-2 shadow-lg shadow-purple-500/30"
+                  >
+                    <FileText size={16} /> Export PDF
+                  </button>
+                  <button 
+                    onClick={() => window.print()} 
+                    className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm flex items-center gap-2"
+                  >
+                    <Download size={16} /> Print
+                  </button>
                 </div>
               </div>
 
-              {/* Stats Grid */}
+              {/* ===== STATS GRID ===== */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center">
                   <p className="text-gray-400 text-xs flex items-center justify-center gap-1"><Target size={14}/> Intent</p>
-                  <p className="text-xl font-bold text-cyan-300 mt-1">{report.search_intent_analysis?.intent_type || report.keyword_intent || 'N/A'}</p>
+                  <p className="text-xl font-bold text-cyan-300 mt-1">
+                    {report.search_intent_analysis?.intent_type || report.keyword_intent || 'N/A'}
+                  </p>
                   <p className="text-xs text-gray-500">Confidence: {report.search_intent_analysis?.confidence_score || 0}%</p>
                 </div>
                 <div className="bg-white/5 p-4 rounded-2xl border border-white/10 text-center">
@@ -287,10 +339,18 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Tabs Navigation */}
+              {/* ===== TABS NAVIGATION ===== */}
               <div className="flex flex-wrap gap-2 border-b border-white/10 pb-3 overflow-x-auto">
                 {tabs.map((tab) => (
-                  <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-3 py-1.5 rounded-xl text-xs font-medium transition whitespace-nowrap ${activeTab === tab.id ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}>
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-medium transition whitespace-nowrap ${
+                      activeTab === tab.id 
+                        ? 'bg-purple-500/30 text-purple-300 border border-purple-500/50' 
+                        : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                    }`}
+                  >
                     {tab.label}
                   </button>
                 ))}
@@ -302,7 +362,6 @@ export default function Home() {
                 {/* ===== TAB 1: OVERVIEW ===== */}
                 {activeTab === 'overview' && (
                   <div className="space-y-6">
-                    {/* Quick Stats */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       <div className="bg-white/5 p-3 rounded-xl text-center">
                         <div className="text-2xl font-bold text-cyan-300">{report.full_serp_analysis?.total_results?.toLocaleString() || 'N/A'}</div>
@@ -803,22 +862,34 @@ export default function Home() {
 
               </div>
 
-              {/* ===== COMMON SECTIONS ===== */}
+              {/* ===== COMMON SECTIONS (Always Visible) ===== */}
 
-              {/* FAQ */}
+              {/* ✅ FAQ - EXACTLY 4 QUESTIONS */}
               {report.faq_questions?.length > 0 && (
                 <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
                   <div className="flex justify-between items-center mb-3">
-                    <h3 className="font-bold text-yellow-300">❓ FAQ Schema (Top 4)</h3>
-                    <button onClick={() => copyToClipboard(report.faq_questions.slice(0, 4).join('\n'))} className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg flex items-center gap-1">
+                    <h3 className="font-bold text-yellow-300 flex items-center gap-2">
+                      <HelpCircle size={18}/> ❓ FAQ Schema (Top 4)
+                    </h3>
+                    <button 
+                      onClick={() => copyToClipboard(report.faq_questions.slice(0, 4).join('\n'))} 
+                      className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg flex items-center gap-1"
+                    >
                       {copied ? <CheckCircle size={12} className="text-green-400"/> : <Copy size={12}/>}
                       {copied ? 'Copied!' : 'Copy All'}
                     </button>
                   </div>
                   <ul className="list-disc pl-5 space-y-1.5 text-gray-300 text-sm">
-                    {report.faq_questions.slice(0, 4).map((q, i) => <li key={i}>{q}</li>)}
+                    {report.faq_questions.slice(0, 4).map((q, i) => (
+                      <li key={i} className="hover:text-cyan-300 transition">{q}</li>
+                    ))}
                   </ul>
-                  {report.faq_questions.length > 4 && <p className="text-xs text-gray-500 mt-2">Showing 4 out of {report.faq_questions.length} questions</p>}
+                  {report.faq_questions.length > 4 && (
+                    <p className="text-xs text-gray-500 mt-2">Showing 4 out of {report.faq_questions.length} questions</p>
+                  )}
+                  {report.faq_questions.length < 4 && (
+                    <p className="text-xs text-yellow-500 mt-2">⚠️ Showing {report.faq_questions.length} questions (Expected 4)</p>
+                  )}
                 </div>
               )}
 
@@ -830,9 +901,11 @@ export default function Home() {
                     <span className="text-xs text-gray-400">*Social media filtered out</span>
                   </div>
                   <table className="w-full text-sm min-w-[400px]">
-                    <thead><tr className="border-b border-white/10 text-left text-gray-400">
-                      <th className="p-2">Rank</th><th className="p-2">Title</th><th className="p-2">Strength</th>
-                    </tr></thead>
+                    <thead>
+                      <tr className="border-b border-white/10 text-left text-gray-400">
+                        <th className="p-2">Rank</th><th className="p-2">Title</th><th className="p-2">Strength</th>
+                      </tr>
+                    </thead>
                     <tbody>
                       {report.competitor_table.map((c, i) => (
                         <tr key={i} className="border-b border-white/5 hover:bg-white/5">
@@ -852,7 +925,13 @@ export default function Home() {
                   <h3 className="font-bold text-blue-300 mb-3">🔗 Authority Citations</h3>
                   <div className="flex flex-wrap gap-2">
                     {report.authority_links.map((l, i) => (
-                      <a key={i} href={l} target="_blank" rel="noreferrer" className="text-xs bg-blue-500/20 hover:bg-blue-500/40 px-3 py-1.5 rounded-full transition truncate max-w-[250px] border border-blue-500/20 flex items-center gap-1">
+                      <a 
+                        key={i} 
+                        href={l} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        className="text-xs bg-blue-500/20 hover:bg-blue-500/40 px-3 py-1.5 rounded-full transition truncate max-w-[250px] border border-blue-500/20 flex items-center gap-1"
+                      >
                         {l.replace(/^https?:\/\//, '').replace(/\/.*$/, '').slice(0, 30)}
                         <ExternalLink size={10} />
                       </a>
@@ -871,7 +950,7 @@ export default function Home() {
           )}
         </AnimatePresence>
 
-        {/* Empty State */}
+        {/* ===== EMPTY STATE ===== */}
         {!loading && !report && !error && (
           <div className="text-center py-20 text-gray-500">
             <div className="text-7xl mb-4">⚡</div>
