@@ -1,642 +1,707 @@
-'use client';
-import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Download, FileText, Loader2, CheckCircle, Target, 
-  TrendingUp, Zap, Lightbulb, Sparkles, Copy, ExternalLink,
-  BarChart3, LineChart, DollarSign, BookOpen, Link2, Settings2
-} from 'lucide-react';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import helmet from 'helmet';
+import compression from 'compression';
+import rateLimit from 'express-rate-limit';
+import Groq from 'groq-sdk';
+import axios from 'axios';
+import cron from 'node-cron';
+import winston from 'winston';
 
-export default function Home() {
-  const [keyword, setKeyword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [report, setReport] = useState(null);
-  const [error, setError] = useState('');
-  const [statusMessage, setStatusMessage] = useState('');
-  const [copied, setCopied] = useState(false);
-  const intervalRef = useRef(null);
-  const reportRef = useRef(null);
+dotenv.config();
+const app = express();
 
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
+// ---------- 1. Logger Setup ----------
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.colorize(),
+    winston.format.printf(({ timestamp, level, message }) => {
+      return `${timestamp} ${level}: ${message}`;
+    })
+  ),
+  transports: [
+    new winston.transports.Console(),
+    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'logs/combined.log' })
+  ]
+});
 
-  // ---------- PDF Export ----------
-  const exportPDF = async () => {
-    if (!reportRef.current) return;
+// ---------- 2. Security & Performance ----------
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+}));
+app.use(compression());
+app.use(express.json({ limit: '10mb' }));
+
+// CORS
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'https://rankforge-front.vercel.app',
+  optionsSuccessStatus: 200,
+  credentials: true,
+};
+app.use(cors(corsOptions));
+
+// Rate Limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: 'Too many requests, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  trustProxy: true,
+  validate: { trustProxy: false },
+});
+app.use('/api/', limiter);
+
+// ---------- 3. Startup Logging ----------
+logger.info('='.repeat(60));
+logger.info('🚀 RankForge Enterprise Backend V6 - POWER EDITION');
+logger.info('='.repeat(60));
+logger.info(`🔍 GROQ_API_KEY: ${process.env.GROQ_API_KEY ? '✅ Set' : '❌ Missing'}`);
+logger.info(`🔍 SERPAPI_KEY: ${process.env.SERPAPI_KEY ? '✅ Set' : '❌ Missing'}`);
+logger.info(`🔍 MONGODB_URI: ${process.env.MONGODB_URI ? '✅ Set' : '❌ Missing'}`);
+
+// ---------- 4. MongoDB Connection ----------
+mongoose.connect(process.env.MONGODB_URI, {
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
+})
+  .then(() => logger.info('✅ MongoDB Connected'))
+  .catch(err => {
+    logger.error('❌ MongoDB Error:', err);
+    process.exit(1);
+  });
+
+// ---------- 5. MongoDB Schema (V6 - Power Edition) ----------
+const ReportSchema = new mongoose.Schema({
+  keyword: { type: String, required: true, index: true },
+  status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
+  errorMessage: { type: String, default: '' },
+  processingTime: { type: Number, default: 0 },
+  data: {
+    // Basic
+    keyword_intent: String,
+    content_score: Number,
+    readability_avg: String,
+    missing_headings: [String],
+    faq_questions: [String],
+    authority_links: [String],
+    competitor_table: [Object],
     
-    try {
-      const element = reportRef.current;
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        backgroundColor: '#0f172a',
-        logging: false,
-        useCORS: true,
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      let heightLeft = pdfHeight;
-      let position = 0;
-      
-      pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-      heightLeft -= pdf.internal.pageSize.getHeight();
-      
-      while (heightLeft > 0) {
-        position = heightLeft - pdfHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-        heightLeft -= pdf.internal.pageSize.getHeight();
-      }
-      
-      pdf.save(`RankForge-Report-${keyword.replace(/\s+/g, '-')}.pdf`);
-    } catch (error) {
-      console.error('PDF Export Error:', error);
-      alert('PDF export failed. Please try again.');
-    }
-  };
-
-  // ---------- Copy to Clipboard ----------
-  const copyToClipboard = async (text) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Copy failed:', err);
-    }
-  };
-
-  // ---------- ✅ FILTER: Remove Reddit/YouTube/Facebook from Competitors ----------
-  const filterCompetitors = (competitors) => {
-    if (!competitors || !Array.isArray(competitors)) return [];
+    // Readability Score
+    readability_score: {
+      flesch_kincaid: Number,
+      grade_level: String,
+      sentence_length: Number,
+      word_complexity: String,
+      recommendations: [String]
+    },
     
-    const blacklist = [
-      'reddit.com', 'youtube.com', 'youtu.be', 'facebook.com', 'fb.com',
-      'instagram.com', 'twitter.com', 'x.com', 'tiktok.com', 'linkedin.com',
-      'quora.com', 'pinterest.com', 'medium.com'
-    ];
+    // Trend Forecast
+    trend_forecast: {
+      growth: String,
+      seasonality: String,
+      peak_months: [String],
+      strategy: String
+    },
+    
+    // Pricing Intelligence
+    pricing_intelligence: {
+      average_price: String,
+      price_range: String,
+      value_for_money: String
+    },
+    
+    // Content Requirements
+    content_requirements: {
+      recommended_words: Number,
+      min_words: Number,
+      max_words: Number,
+      images_needed: Number,
+      media_format: String,
+      video_suggestions: [String]
+    },
+    
+    // Keyword Metrics
+    keyword_metrics: {
+      search_volume: Number,
+      difficulty: Number,
+      cpc: Number,
+      competition: String,
+      related_keywords: [String]
+    },
+    
+    // Backlink Gap
+    backlink_gap: {
+      competitor_backlinks: [Object],
+      backlink_opportunities: [String],
+      backlink_strategy: String,
+      cost: String,
+      impact: String,
+      opportunities: Number
+    },
+    
+    // Content Strategy
+    content_recommendations: {
+      title: String,
+      meta_description: String,
+      target_audience: String,
+      content_length: String,
+      tone: String,
+      seo_tips: [String]
+    },
+    
+    // SEO Metadata
+    seo_metadata: {
+      title_tag: String,
+      meta_description: String,
+      url_slug: String,
+      focus_keyword: String
+    },
 
-    return competitors.filter(comp => {
-      // Check link
-      if (comp.link) {
-        const linkLower = comp.link.toLowerCase();
-        for (const domain of blacklist) {
-          if (linkLower.includes(domain)) return false;
-        }
-      }
-      // Check title
-      if (comp.title) {
-        const titleLower = comp.title.toLowerCase();
-        if (titleLower.includes('reddit') || titleLower.includes('youtube') || 
-            titleLower.includes('facebook') || titleLower.includes('twitter')) {
-          return false;
-        }
-      }
-      return true;
-    });
-  };
-
-  // ---------- Handle Generate ----------
-  const handleGenerate = async () => {
-    if (!keyword.trim()) {
-      setError('Please enter a keyword.');
-      return;
+    // ===== 🆕 V6 POWER EDITION FEATURES =====
+    
+    // 1. Real-time Competitor Analysis
+    realtime_competitor_analysis: {
+      competitors: [{
+        name: String,
+        domain: String,
+        traffic: String,
+        keyword_count: Number,
+        domain_authority: Number,
+        backlinks: Number,
+        strengths: [String],
+        weaknesses: [String]
+      }],
+      market_position: String,
+      competitive_edge: String
+    },
+    
+    // 2. NLP Keywords (Semantic Analysis)
+    nlp_keywords: {
+      primary: [String],
+      secondary: [String],
+      long_tail: [String],
+      lsi: [String],
+      semantic_related: [String],
+      keyword_clusters: [Object]
+    },
+    
+    // 3. People Also Ask (PAA)
+    people_also_ask: [{
+      question: String,
+      answer: String,
+      source: String,
+      related_questions: [String]
+    }],
+    
+    // 4. SERP Analysis
+    serp_analysis: {
+      featured_snippet: String,
+      knowledge_panel: String,
+      top_stories: [String],
+      videos: [String],
+      images: [String],
+      maps: String,
+      total_results: Number,
+      paid_ads: Number,
+      organic_results_count: Number
+    },
+    
+    // 5. Schema Markup (Ready-to-use JSON-LD)
+    schema_markup: {
+      article: String,
+      faq: String,
+      product: String,
+      how_to: String,
+      organization: String,
+      complete_json: String
+    },
+    
+    // 6. Internal Links Suggestions
+    internal_links: [{
+      anchor_text: String,
+      target_url: String,
+      relevance_score: Number,
+      context: String
+    }],
+    
+    // 7. Content Quality Score (Detailed)
+    content_quality: {
+      uniqueness: Number,
+      comprehensiveness: Number,
+      engagement: Number,
+      readability_score: Number,
+      seo_friendliness: Number,
+      overall_grade: String,
+      improvement_suggestions: [String]
+    },
+    
+    // 8. Entity Recognition
+    entities: {
+      people: [String],
+      organizations: [String],
+      locations: [String],
+      products: [String],
+      dates: [String],
+      concepts: [String]
     }
+  },
+  createdAt: { type: Date, default: Date.now, expires: 2592000 }
+});
 
-    setLoading(true);
-    setProgress(0);
-    setReport(null);
-    setError('');
-    setStatusMessage('⏳ Starting premium analysis...');
+ReportSchema.index({ keyword: 1, createdAt: -1 });
+ReportSchema.index({ status: 1 });
 
-    if (intervalRef.current) clearInterval(intervalRef.current);
+const Report = mongoose.model('Report', ReportSchema);
 
-    try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!baseUrl) {
-        setError('API URL is not configured.');
-        setLoading(false);
-        return;
-      }
-
-      const res = await fetch(`${baseUrl}/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword: keyword.trim() }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to start generation');
-      }
-
-      const data = await res.json();
-
-      if (data.cached) {
-        const filteredData = { ...data.data };
-        if (filteredData.competitor_table) {
-          filteredData.competitor_table = filterCompetitors(filteredData.competitor_table);
-        }
-        setReport(filteredData);
-        setProgress(100);
-        setStatusMessage('✅ Report ready from cache!');
-        setLoading(false);
-        return;
-      }
-
-      const reportId = data.reportId;
-      setStatusMessage('🔄 Fetching competitor data...');
-
-      let pollCount = 0;
-      const maxPolls = 120;
-
-      intervalRef.current = setInterval(async () => {
-        pollCount++;
-        
-        if (pollCount < 10) setStatusMessage('🔍 Analyzing top competitors...');
-        else if (pollCount < 20) setStatusMessage('🧠 Generating premium insights...');
-        else setStatusMessage('⏳ Finalizing report...');
-        
-        setProgress(Math.min(pollCount * 1.5, 95));
-
-        try {
-          const statusRes = await fetch(`${baseUrl}/report/${reportId}`);
-          if (!statusRes.ok) throw new Error('Status check failed');
-
-          const statusData = await statusRes.json();
-
-          if (statusData.status === 'completed') {
-            const filteredData = { ...statusData.data };
-            if (filteredData.competitor_table) {
-              filteredData.competitor_table = filterCompetitors(filteredData.competitor_table);
-            }
-            setReport(filteredData);
-            setProgress(100);
-            setStatusMessage('✅ Report ready!');
-            setLoading(false);
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          } else if (statusData.status === 'failed') {
-            setError(`❌ ${statusData.errorMessage || 'Report generation failed.'}`);
-            setLoading(false);
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          } else if (pollCount >= maxPolls) {
-            setError('⏰ Generation is taking too long. Please try again.');
-            setLoading(false);
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
-        } catch (err) {
-          console.error('Polling error:', err);
-        }
-      }, 3000);
-
-    } catch (err) {
-      setError(err.message || 'Something went wrong.');
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mb-8"
-        >
-          <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 text-transparent bg-clip-text">
-              RankForge
-            </h1>
-            <span className="text-xs font-semibold bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1.5 rounded-full border border-purple-500/50 shadow-lg shadow-purple-500/20 animate-pulse">
-              ENTERPRISE
-            </span>
-          </div>
-          <p className="text-gray-400 mt-2 text-sm md:text-base">
-            AI analyzes competitors, finds gaps, and delivers actionable strategies.
-          </p>
-        </motion.div>
-
-        {/* Input Section */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="flex flex-col sm:flex-row gap-4 mb-6"
-        >
-          <input
-            type="text"
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
-            placeholder='Enter keyword (e.g., "best phones in Japan")'
-            className="flex-1 p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-400 transition"
-            disabled={loading}
-          />
-          <button
-            onClick={handleGenerate}
-            disabled={loading}
-            className="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105 transition-transform rounded-2xl font-bold shadow-lg shadow-purple-500/30 disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-2 min-w-[200px]"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="animate-spin h-5 w-5" />
-                Analyzing...
-              </>
-            ) : (
-              <>
-                <Sparkles size={18} /> Generate Brief
-              </>
-            )}
-          </button>
-        </motion.div>
-
-        {/* Status & Progress */}
-        <AnimatePresence>
-          {statusMessage && loading && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mb-3 text-sm text-cyan-300 text-center"
-            >
-              {statusMessage}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {error && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-2xl text-red-300 text-sm"
-          >
-            ⚠️ {error}
-          </motion.div>
-        )}
-
-        {loading && (
-          <div className="mb-8 space-y-2">
-            <div className="w-full bg-white/10 rounded-full h-2.5 overflow-hidden">
-              <motion.div 
-                className="h-full bg-gradient-to-r from-cyan-400 to-purple-500 rounded-full"
-                style={{ width: `${progress}%` }}
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.5 }}
-              />
-            </div>
-            <p className="text-xs text-gray-400 text-right">{progress}% complete</p>
-          </div>
-        )}
-
-        {/* Report */}
-        <AnimatePresence>
-          {report && (
-            <motion.div 
-              ref={reportRef}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="bg-slate-900/50 backdrop-blur-xl rounded-3xl border border-white/10 p-6 md:p-8 space-y-6"
-            >
-              {/* Report Header */}
-              <div className="flex flex-wrap gap-3 justify-between items-center border-b border-white/10 pb-4">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                  <h2 className="text-xl font-semibold text-green-400">
-                    Report: <span className="text-white font-mono">{keyword}</span>
-                  </h2>
-                </div>
-                <div className="flex gap-3">
-                  <button 
-                    onClick={exportPDF} 
-                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105 transition rounded-xl text-sm flex items-center gap-2 shadow-lg shadow-purple-500/30"
-                  >
-                    <FileText size={16} /> Export PDF
-                  </button>
-                  <button 
-                    onClick={() => window.print()} 
-                    className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm flex items-center gap-2"
-                  >
-                    <Download size={16} /> Print
-                  </button>
-                </div>
-              </div>
-
-              {/* Stats Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                  <p className="text-gray-400 text-xs flex items-center gap-1"><Target size={14}/> Search Intent</p>
-                  <p className="text-xl font-bold text-cyan-300 mt-1">{report.keyword_intent || 'Informational'}</p>
-                </div>
-                <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                  <p className="text-gray-400 text-xs flex items-center gap-1"><TrendingUp size={14}/> Content Score</p>
-                  <p className="text-xl font-bold text-yellow-300 mt-1">{report.content_score || 85}/100</p>
-                </div>
-                <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-                  <p className="text-gray-400 text-xs flex items-center gap-1"><Zap size={14}/> Readability</p>
-                  <p className="text-xl font-bold text-green-300 mt-1">{report.readability_avg || 'Medium'}</p>
-                </div>
-              </div>
-
-              {/* Readability Score */}
-              {report.readability_score && (
-                <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                  <h3 className="font-bold text-blue-300 flex items-center gap-2 mb-3">
-                    <BookOpen size={18}/> Readability Score
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                    <div><span className="text-gray-400">Flesch-Kincaid:</span> <span className="text-cyan-300">{report.readability_score.flesch_kincaid || 'N/A'}</span></div>
-                    <div><span className="text-gray-400">Grade Level:</span> <span className="text-yellow-300">{report.readability_score.grade_level || 'N/A'}</span></div>
-                    <div><span className="text-gray-400">Sentence Length:</span> <span className="text-purple-300">{report.readability_score.sentence_length || 'N/A'} words</span></div>
-                    <div><span className="text-gray-400">Word Complexity:</span> <span className="text-pink-300">{report.readability_score.word_complexity || 'N/A'}</span></div>
-                  </div>
-                  {report.readability_score.recommendations?.length > 0 && (
-                    <div className="mt-3 text-xs text-gray-400">
-                      <span className="text-yellow-300">💡 Recommendations:</span>
-                      <ul className="list-disc pl-5 mt-1">
-                        {report.readability_score.recommendations.map((r, i) => <li key={i}>{r}</li>)}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Trend Forecast */}
-              {report.trend_forecast && (
-                <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                  <h3 className="font-bold text-orange-300 flex items-center gap-2 mb-3">
-                    <LineChart size={18}/> Trend Forecast
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                    <div><span className="text-gray-400">📈 Growth:</span> <span className="text-green-300">{report.trend_forecast.growth || 'N/A'}</span></div>
-                    <div><span className="text-gray-400">📅 Seasonality:</span> <span className="text-cyan-300">{report.trend_forecast.seasonality || 'N/A'}</span></div>
-                    <div><span className="text-gray-400">📊 Peak Months:</span> <span className="text-yellow-300">{report.trend_forecast.peak_months?.join(', ') || 'N/A'}</span></div>
-                  </div>
-                  {report.trend_forecast.strategy && (
-                    <div className="mt-3 text-xs text-gray-400">
-                      <span className="text-purple-300">🎯 Strategy:</span> {report.trend_forecast.strategy}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Pricing Intelligence */}
-              {report.pricing_intelligence && (
-                <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                  <h3 className="font-bold text-green-300 flex items-center gap-2 mb-3">
-                    <DollarSign size={18}/> Pricing Intelligence
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                    <div><span className="text-gray-400">💰 Average Price:</span> <span className="text-cyan-300">{report.pricing_intelligence.average_price || 'N/A'}</span></div>
-                    <div><span className="text-gray-400">📊 Price Range:</span> <span className="text-yellow-300">{report.pricing_intelligence.price_range || 'N/A'}</span></div>
-                    <div><span className="text-gray-400">🏷️ Value for Money:</span> <span className="text-green-300">{report.pricing_intelligence.value_for_money || 'N/A'}</span></div>
-                  </div>
-                </div>
-              )}
-
-              {/* Content Requirements */}
-              {report.content_requirements && (
-                <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                  <h3 className="font-bold text-purple-300 flex items-center gap-2 mb-3">
-                    <Settings2 size={18}/> Content Requirements
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                    <div><span className="text-gray-400">📝 Words:</span> <span className="text-cyan-300">{report.content_requirements.recommended_words || 'N/A'}</span></div>
-                    <div><span className="text-gray-400">📏 Min-Max:</span> <span className="text-yellow-300">{report.content_requirements.min_words || 'N/A'} - {report.content_requirements.max_words || 'N/A'}</span></div>
-                    <div><span className="text-gray-400">🖼️ Images:</span> <span className="text-purple-300">{report.content_requirements.images_needed || 'N/A'}</span></div>
-                    <div><span className="text-gray-400">🎬 Media:</span> <span className="text-pink-300">{report.content_requirements.media_format || 'N/A'}</span></div>
-                  </div>
-                  {report.content_requirements.video_suggestions?.length > 0 && (
-                    <div className="mt-3 text-xs text-gray-400">
-                      <span className="text-orange-300">🎥 Video Suggestions:</span>
-                      <ul className="list-disc pl-5 mt-1">
-                        {report.content_requirements.video_suggestions.map((v, i) => <li key={i}>{v}</li>)}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Keyword Metrics */}
-              {report.keyword_metrics && (
-                <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                  <h3 className="font-bold text-cyan-300 flex items-center gap-2 mb-3">
-                    <BarChart3 size={18}/> Keyword Volume & Difficulty
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                    <div><span className="text-gray-400">🔍 Search Volume:</span> <span className="text-green-300">{report.keyword_metrics.search_volume || 'N/A'}</span></div>
-                    <div><span className="text-gray-400">📊 Difficulty:</span> <span className="text-yellow-300">{report.keyword_metrics.difficulty || 'N/A'}/100</span></div>
-                    <div><span className="text-gray-400">💰 CPC:</span> <span className="text-cyan-300">${report.keyword_metrics.cpc || 'N/A'}</span></div>
-                    <div><span className="text-gray-400">🏆 Competition:</span> <span className="text-pink-300">{report.keyword_metrics.competition || 'N/A'}</span></div>
-                  </div>
-                  {report.keyword_metrics.related_keywords?.length > 0 && (
-                    <div className="mt-3 text-xs text-gray-400">
-                      <span className="text-purple-300">🔗 Related Keywords:</span>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        {report.keyword_metrics.related_keywords.map((k, i) => (
-                          <span key={i} className="bg-white/5 px-2 py-0.5 rounded-full border border-white/10">{k}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Backlink Gap */}
-              {report.backlink_gap && (
-                <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                  <h3 className="font-bold text-indigo-300 flex items-center gap-2 mb-3">
-                    <Link2 size={18}/> Backlink Gap Analysis
-                  </h3>
-                  {report.backlink_gap.competitor_backlinks?.length > 0 && (
-                    <div className="mb-3">
-                      <span className="text-gray-400 text-xs">Competitor Backlink Profile:</span>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-1">
-                        {report.backlink_gap.competitor_backlinks.map((b, i) => (
-                          <div key={i} className="bg-white/5 p-2 rounded-lg text-xs">
-                            <div className="text-cyan-300 truncate">{b.domain || 'N/A'}</div>
-                            <div className="text-gray-400">Backlinks: {b.backlinks || 'N/A'} | DA: {b.da || 'N/A'}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {report.backlink_gap.backlink_opportunities?.length > 0 && (
-                    <div className="mt-2">
-                      <span className="text-gray-400 text-xs">💡 Backlink Opportunities:</span>
-                      <ul className="list-disc pl-5 text-sm text-yellow-300">
-                        {report.backlink_gap.backlink_opportunities.map((o, i) => <li key={i}>{o}</li>)}
-                      </ul>
-                    </div>
-                  )}
-                  {report.backlink_gap.backlink_strategy && (
-                    <div className="mt-3 text-xs text-gray-400">
-                      <span className="text-purple-300">🎯 Strategy:</span> {report.backlink_gap.backlink_strategy}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Content Strategy */}
-              {report.content_recommendations && (
-                <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-5 rounded-2xl border border-purple-500/20">
-                  <h3 className="font-bold text-purple-300 flex items-center gap-2 mb-3">
-                    <Lightbulb size={18}/> Content Strategy
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                    <div><span className="text-gray-400">📌 Title:</span> {report.content_recommendations.title || 'N/A'}</div>
-                    <div><span className="text-gray-400">📝 Meta:</span> {report.content_recommendations.meta_description || 'N/A'}</div>
-                    <div><span className="text-gray-400">🎯 Audience:</span> {report.content_recommendations.target_audience || 'N/A'}</div>
-                    <div><span className="text-gray-400">📄 Length:</span> {report.content_recommendations.content_length || 'N/A'}</div>
-                    <div><span className="text-gray-400">🎤 Tone:</span> {report.content_recommendations.tone || 'N/A'}</div>
-                    <div className="md:col-span-2">
-                      <span className="text-gray-400">💡 SEO Tips:</span>
-                      <ul className="list-disc pl-5 mt-1">
-                        {report.content_recommendations.seo_tips?.map((tip, i) => <li key={i}>{tip}</li>)}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Missing Headings */}
-              {report.missing_headings?.length > 0 && (
-                <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                  <h3 className="font-bold text-purple-300 mb-3">📌 Missing Headings (Content Gaps)</h3>
-                  <ul className="list-disc pl-5 space-y-1.5 text-gray-300 text-sm">
-                    {report.missing_headings.map((h, i) => <li key={i}>{h}</li>)}
-                  </ul>
-                </div>
-              )}
-
-              {/* FAQ - Only 4 */}
-              {report.faq_questions?.length > 0 && (
-                <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="font-bold text-yellow-300">❓ FAQ Schema (Top 4)</h3>
-                    <button 
-                      onClick={() => copyToClipboard(report.faq_questions.slice(0, 4).join('\n'))}
-                      className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg flex items-center gap-1"
-                    >
-                      {copied ? <CheckCircle size={12} className="text-green-400"/> : <Copy size={12}/>}
-                      {copied ? 'Copied!' : 'Copy All'}
-                    </button>
-                  </div>
-                  <ul className="list-disc pl-5 space-y-1.5 text-gray-300 text-sm">
-                    {report.faq_questions.slice(0, 4).map((q, i) => <li key={i}>{q}</li>)}
-                  </ul>
-                  {report.faq_questions.length > 4 && (
-                    <p className="text-xs text-gray-500 mt-2">Showing 4 out of {report.faq_questions.length} questions</p>
-                  )}
-                </div>
-              )}
-
-              {/* Competitor Battle - Filtered */}
-              {report.competitor_table?.length > 0 && (
-                <div className="bg-white/5 p-5 rounded-2xl border border-white/10 overflow-x-auto">
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="font-bold text-orange-300">🏆 Competitor Battle Card</h3>
-                    <span className="text-xs text-gray-400">*Social media filtered out</span>
-                  </div>
-                  <table className="w-full text-sm min-w-[400px]">
-                    <thead>
-                      <tr className="border-b border-white/10 text-left text-gray-400">
-                        <th className="p-2">Rank</th>
-                        <th className="p-2">Title</th>
-                        <th className="p-2">Strength</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {report.competitor_table.map((c, i) => (
-                        <tr key={i} className="border-b border-white/5 hover:bg-white/5">
-                          <td className="p-2 text-cyan-300">#{c.rank}</td>
-                          <td className="p-2 truncate max-w-[200px]">{c.title}</td>
-                          <td className="p-2 text-green-300 text-xs">{c.strength}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {/* Authority Links */}
-              {report.authority_links?.length > 0 && (
-                <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                  <h3 className="font-bold text-blue-300 mb-3">🔗 Authority Citations</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {report.authority_links.map((l, i) => (
-                      <a 
-                        key={i} 
-                        href={l} 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        className="text-xs bg-blue-500/20 hover:bg-blue-500/40 px-3 py-1.5 rounded-full transition truncate max-w-[250px] border border-blue-500/20 flex items-center gap-1"
-                      >
-                        {l.replace(/^https?:\/\//, '').replace(/\/.*$/, '').slice(0, 30)}
-                        <ExternalLink size={10} />
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* SEO Metadata */}
-              {report.seo_metadata && (
-                <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="font-bold text-emerald-300">🏷️ SEO Metadata</h3>
-                    <button 
-                      onClick={() => copyToClipboard(JSON.stringify(report.seo_metadata, null, 2))}
-                      className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1 rounded-lg flex items-center gap-1"
-                    >
-                      <Copy size={12}/> Copy All
-                    </button>
-                  </div>
-                  <div className="space-y-2 text-sm">
-                    <div><span className="text-gray-400">Title Tag:</span> {report.seo_metadata.title_tag || 'N/A'}</div>
-                    <div><span className="text-gray-400">Meta Description:</span> {report.seo_metadata.meta_description || 'N/A'}</div>
-                    <div><span className="text-gray-400">URL Slug:</span> {report.seo_metadata.url_slug || 'N/A'}</div>
-                    <div><span className="text-gray-400">Focus Keyword:</span> <span className="text-yellow-300">{report.seo_metadata.focus_keyword || 'N/A'}</span></div>
-                  </div>
-                </div>
-              )}
-
-              <p className="text-xs text-gray-500 text-center pt-4 border-t border-white/5">
-                ⚠️ Do not copy-paste raw data. Use these human-edited insights to create original content.
-              </p>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Empty State */}
-        {!loading && !report && !error && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8 }}
-            className="text-center py-20 text-gray-500"
-          >
-            <div className="text-7xl mb-4">🧠</div>
-            <p className="text-xl font-semibold text-gray-300">Enter a keyword to generate a premium SEO brief</p>
-            <p className="text-sm text-gray-600 mt-2">Powered by GROQ, SerpAPI & MongoDB</p>
-          </motion.div>
-        )}
-      </div>
-    </div>
-  );
+// ---------- 6. GROQ AI Service (V6 - Power Edition) ----------
+if (!process.env.GROQ_API_KEY) {
+  logger.error('❌ Fatal Error: GROQ_API_KEY is missing!');
+  process.exit(1);
 }
+
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
+
+const generatePowerInsights = async (keyword, serpData) => {
+  const competitors = serpData.organic_results?.slice(0, 5).map((r, i) => ({
+    rank: i + 1,
+    title: (r.title || 'N/A').substring(0, 80),
+    snippet: (r.snippet || '').substring(0, 250),
+    link: r.link || '#'
+  })) || [];
+
+  // Extract People Also Ask from SERP
+  const peopleAlsoAsk = serpData.people_also_ask?.map(p => ({
+    question: p.question || '',
+    answer: p.snippet || ''
+  })) || [];
+
+  // Extract SERP features
+  const serpFeatures = {
+    featured_snippet: serpData.organic_results?.[0]?.snippet || '',
+    knowledge_panel: serpData.knowledge_graph?.name || '',
+    top_stories: serpData.top_stories?.map(s => s.title) || [],
+    videos: serpData.video_results?.map(v => v.title) || [],
+    images: serpData.images_results?.map(i => i.title) || [],
+  };
+
+  logger.info(`🤖 GROQ Power Analysis for: "${keyword}"`);
+  logger.info(`📊 Analyzing ${competitors.length} competitors`);
+
+  const prompt = `
+    You are a Senior SEO Expert and Data Analyst. Perform ULTIMATE, POWERFUL analysis for keyword: "${keyword}".
+    
+    **CRITICAL RULES:**
+    1. Return ONLY valid JSON.
+    2. NO markdown, NO explanations outside JSON.
+    3. Be specific, actionable, and data-driven.
+    
+    Competitor Data (Top 5):
+    ${JSON.stringify(competitors, null, 2)}
+    
+    People Also Ask Data:
+    ${JSON.stringify(peopleAlsoAsk, null, 2)}
+    
+    SERP Features:
+    ${JSON.stringify(serpFeatures, null, 2)}
+    
+    Generate EXACT JSON with ALL these sections:
+    {
+      "keyword_intent": "Commercial/Informational/Transactional",
+      "content_score": 85,
+      "readability_avg": "Easy/Medium/Hard",
+      
+      "missing_headings": ["H2 heading 1", "H2 heading 2", "H2 heading 3", "H2 heading 4", "H2 heading 5", "H2 heading 6"],
+      "faq_questions": ["Q1?", "Q2?", "Q3?", "Q4?", "Q5?", "Q6?"],
+      "authority_links": ["https://example1.com", "https://example2.com", "https://example3.com"],
+      
+      "competitor_table": [
+        {"rank": 1, "title": "Competitor 1", "strength": "Main advantage"},
+        {"rank": 2, "title": "Competitor 2", "strength": "Main advantage"},
+        {"rank": 3, "title": "Competitor 3", "strength": "Main advantage"}
+      ],
+      
+      "readability_score": {
+        "flesch_kincaid": 70,
+        "grade_level": "9th Grade",
+        "sentence_length": 18,
+        "word_complexity": "Medium",
+        "recommendations": ["Use shorter sentences", "Simplify vocabulary"]
+      },
+      
+      "trend_forecast": {
+        "growth": "20%",
+        "seasonality": "Peak in Q4 and Q1",
+        "peak_months": ["November", "December", "January"],
+        "strategy": "Create content before peak season"
+      },
+      
+      "pricing_intelligence": {
+        "average_price": "50,000 JPY",
+        "price_range": "30,000 - 200,000 JPY",
+        "value_for_money": "Best value models"
+      },
+      
+      "content_requirements": {
+        "recommended_words": 3000,
+        "min_words": 2000,
+        "max_words": 4000,
+        "images_needed": 10,
+        "media_format": "HD Images + Videos",
+        "video_suggestions": ["Unboxing video", "Comparison video"]
+      },
+      
+      "keyword_metrics": {
+        "search_volume": 1000,
+        "difficulty": 44,
+        "cpc": 0.9,
+        "competition": "High",
+        "related_keywords": ["keyword 1", "keyword 2", "keyword 3", "keyword 4", "keyword 5"]
+      },
+      
+      "backlink_gap": {
+        "competitor_backlinks": [
+          {"domain": "example1.com", "backlinks": 1200, "da": 92},
+          {"domain": "example2.com", "backlinks": 500, "da": 65}
+        ],
+        "backlink_opportunities": ["TechRadar Guest Post", "Statista Resource Page"],
+        "backlink_strategy": "Create high-quality content and reach out",
+        "cost": "10 hours content + 5 hours outreach per week",
+        "impact": "15-25 points",
+        "opportunities": 8
+      },
+      
+      "content_recommendations": {
+        "title": "SEO-optimized title",
+        "meta_description": "Meta description under 160 chars",
+        "target_audience": "Target audience description",
+        "content_length": "2000-2500 words",
+        "tone": "Professional",
+        "seo_tips": ["Tip 1", "Tip 2", "Tip 3", "Tip 4"]
+      },
+      
+      "seo_metadata": {
+        "title_tag": "SEO title tag",
+        "meta_description": "SEO meta description",
+        "url_slug": "url-friendly-slug",
+        "focus_keyword": "main keyword"
+      },
+
+      "realtime_competitor_analysis": {
+        "competitors": [
+          {"name": "Competitor 1", "domain": "comp1.com", "traffic": "1.2M/month", "keyword_count": 45000, "domain_authority": 85, "backlinks": 50000, "strengths": ["High DA", "Content depth"], "weaknesses": ["Slow loading"]},
+          {"name": "Competitor 2", "domain": "comp2.com", "traffic": "800K/month", "keyword_count": 35000, "domain_authority": 78, "backlinks": 35000, "strengths": ["Brand authority"], "weaknesses": ["Limited content"]}
+        ],
+        "market_position": "High competition market",
+        "competitive_edge": "Focus on depth and quality"
+      },
+      
+      "nlp_keywords": {
+        "primary": ["keyword 1", "keyword 2", "keyword 3"],
+        "secondary": ["keyword 4", "keyword 5", "keyword 6"],
+        "long_tail": ["long tail 1", "long tail 2", "long tail 3"],
+        "lsi": ["LSI 1", "LSI 2", "LSI 3"],
+        "semantic_related": ["Semantic 1", "Semantic 2"],
+        "keyword_clusters": [{"cluster": "Group 1", "keywords": ["kw1", "kw2"]}]
+      },
+      
+      "people_also_ask": [
+        {"question": "Question 1?", "answer": "Answer 1", "source": "Google PAA", "related_questions": ["Related 1", "Related 2"]},
+        {"question": "Question 2?", "answer": "Answer 2", "source": "Google PAA", "related_questions": ["Related 3"]}
+      ],
+      
+      "serp_analysis": {
+        "featured_snippet": "Featured snippet content",
+        "knowledge_panel": "Knowledge panel data",
+        "top_stories": ["Story 1", "Story 2"],
+        "videos": ["Video 1", "Video 2"],
+        "images": ["Image 1", "Image 2"],
+        "maps": "Map data",
+        "total_results": 1000000,
+        "paid_ads": 4,
+        "organic_results_count": 10
+      },
+      
+      "schema_markup": {
+        "article": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Article\"}</script>",
+        "faq": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"FAQPage\"}</script>",
+        "product": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Product\"}</script>",
+        "how_to": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"HowTo\"}</script>",
+        "organization": "<script type=\"application/ld+json\">{\"@context\":\"https://schema.org\",\"@type\":\"Organization\"}</script>",
+        "complete_json": "{\"@context\":\"https://schema.org\",\"@type\":\"Article\",\"headline\":\"Title\"}"
+      },
+      
+      "internal_links": [
+        {"anchor_text": "Link 1", "target_url": "/category/page1", "relevance_score": 85, "context": "Relevant context"},
+        {"anchor_text": "Link 2", "target_url": "/category/page2", "relevance_score": 75, "context": "Relevant context"}
+      ],
+      
+      "content_quality": {
+        "uniqueness": 85,
+        "comprehensiveness": 80,
+        "engagement": 75,
+        "readability_score": 78,
+        "seo_friendliness": 82,
+        "overall_grade": "B+",
+        "improvement_suggestions": ["Add more examples", "Include data points", "Improve readability"]
+      },
+      
+      "entities": {
+        "people": ["Person 1", "Person 2"],
+        "organizations": ["Company 1", "Company 2"],
+        "locations": ["Location 1", "Location 2"],
+        "products": ["Product 1", "Product 2"],
+        "dates": ["Date 1"],
+        "concepts": ["Concept 1", "Concept 2"]
+      }
+    }
+  `;
+
+  try {
+    const startTime = Date.now();
+    const response = await groq.chat.completions.create({
+      messages: [
+        { 
+          role: 'system', 
+          content: 'You are a Senior SEO Expert. Return ONLY valid JSON. No markdown, no explanations.' 
+        },
+        { 
+          role: 'user', 
+          content: prompt 
+        }
+      ],
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0.3,
+      max_tokens: 12000,
+    });
+    const endTime = Date.now();
+    logger.info(`⏱️ GROQ Response Time: ${(endTime - startTime) / 1000}s`);
+
+    const text = response.choices[0].message.content;
+    logger.info(`📝 GROQ Response: ${text.substring(0, 150)}...`);
+    
+    const cleanJson = text.replace(/```json|```/g, '').trim();
+    return JSON.parse(cleanJson);
+  } catch (error) {
+    logger.error('❌ GROQ Error:', error.message);
+    if (error.response) {
+      logger.error('Response:', error.response.data);
+    }
+    throw new Error(`GROQ API Error: ${error.message}`);
+  }
+};
+
+// ---------- 7. SerpAPI Service (with PAA extraction) ----------
+const fetchSerp = async (keyword) => {
+  logger.info(`🔍 Fetching SERP for: "${keyword}"`);
+  
+  try {
+    const startTime = Date.now();
+    const response = await axios.get('https://serpapi.com/search', {
+      params: {
+        q: keyword,
+        api_key: process.env.SERPAPI_KEY,
+        num: 5,
+        location: 'Pakistan'
+      },
+      timeout: 15000
+    });
+    const endTime = Date.now();
+    logger.info(`⏱️ SerpAPI Response Time: ${(endTime - startTime) / 1000}s`);
+    
+    if (!response.data.organic_results || response.data.organic_results.length === 0) {
+      throw new Error('No organic results found. Try a different keyword.');
+    }
+    
+    logger.info(`✅ SERP fetched: ${response.data.organic_results.length} results`);
+    return response.data;
+  } catch (error) {
+    logger.error('❌ SerpAPI Error:', error.message);
+    throw new Error(`⚠️ SerpAPI failed: ${error.message}`);
+  }
+};
+
+// ---------- 8. API Routes ----------
+
+// GET: Health Check
+app.get('/api/health', async (req, res) => {
+  const dbStatus = mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected';
+  const totalReports = await Report.countDocuments();
+  const completedReports = await Report.countDocuments({ status: 'completed' });
+  
+  res.json({
+    status: 'OK',
+    message: 'RankForge Power Edition V6 is Live!',
+    version: '6.0.0',
+    timestamp: new Date().toISOString(),
+    mongodb: dbStatus,
+    groq: process.env.GROQ_API_KEY ? 'Configured' : 'Missing',
+    serpapi: process.env.SERPAPI_KEY ? 'Configured' : 'Missing',
+    features: [
+      'Real-time Competitor Analysis',
+      'NLP Keywords',
+      'People Also Ask',
+      'SERP Analysis',
+      'Schema Markup',
+      'Internal Links',
+      'Content Quality Score',
+      'Entity Recognition'
+    ],
+    stats: {
+      total_reports: totalReports,
+      completed_reports: completedReports,
+      success_rate: totalReports > 0 ? Math.round((completedReports / totalReports) * 100) : 0
+    }
+  });
+});
+
+// POST: Generate Report
+app.post('/api/generate', async (req, res) => {
+  const { keyword } = req.body;
+  if (!keyword) return res.status(400).json({ error: 'Keyword required' });
+
+  try {
+    const cached = await Report.findOne({ keyword, status: 'completed' }).sort({ createdAt: -1 });
+    if (cached) {
+      logger.info(`✅ Cache hit for: "${keyword}"`);
+      return res.json({ reportId: cached._id, cached: true, data: cached.data });
+    }
+
+    const pending = await Report.findOne({ keyword, status: 'pending' });
+    if (pending) {
+      return res.json({ 
+        reportId: pending._id, 
+        cached: false, 
+        message: 'Already processing...' 
+      });
+    }
+
+    const newReport = new Report({ keyword, status: 'pending' });
+    await newReport.save();
+
+    res.json({ reportId: newReport._id, cached: false, message: 'Processing power analysis...' });
+
+    (async () => {
+      const startTime = Date.now();
+      try {
+        logger.info(`🔄 Starting Power Analysis for: "${keyword}"`);
+        
+        const serpData = await fetchSerp(keyword);
+        const insights = await generatePowerInsights(keyword, serpData);
+        const endTime = Date.now();
+        
+        await Report.findByIdAndUpdate(newReport._id, {
+          status: 'completed',
+          data: insights,
+          processingTime: (endTime - startTime) / 1000
+        });
+        logger.info(`✅ Power Analysis Completed: "${keyword}" in ${(endTime - startTime) / 1000}s`);
+      } catch (error) {
+        logger.error(`❌ Failed: "${keyword}"`, error.message);
+        await Report.findByIdAndUpdate(newReport._id, { 
+          status: 'failed',
+          errorMessage: error.message
+        });
+      }
+    })();
+
+  } catch (error) {
+    logger.error('❌ Route Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET: Report Status
+app.get('/api/report/:id', async (req, res) => {
+  try {
+    const report = await Report.findById(req.params.id);
+    if (!report) return res.status(404).json({ error: 'Report not found' });
+    res.json(report);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET: Analytics
+app.get('/api/analytics', async (req, res) => {
+  try {
+    const total = await Report.countDocuments();
+    const completed = await Report.countDocuments({ status: 'completed' });
+    const failed = await Report.countDocuments({ status: 'failed' });
+    const pending = await Report.countDocuments({ status: 'pending' });
+    
+    const avgScore = await Report.aggregate([
+      { $match: { status: 'completed', 'data.content_score': { $exists: true } } },
+      { $group: { _id: null, avg: { $avg: '$data.content_score' } } }
+    ]);
+    
+    const recentReports = await Report.find({ status: 'completed' })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .select('keyword createdAt data.content_score');
+    
+    res.json({
+      total_reports: total,
+      completed_reports: completed,
+      failed_reports: failed,
+      pending_reports: pending,
+      average_score: avgScore[0]?.avg || 0,
+      recent_reports: recentReports
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ---------- 9. Cron Jobs ----------
+cron.schedule('0 9 * * 1', async () => {
+  logger.info('📊 Generating weekly analytics report...');
+  try {
+    const total = await Report.countDocuments();
+    const completed = await Report.countDocuments({ status: 'completed' });
+    logger.info(`📊 Weekly Stats: Total: ${total}, Completed: ${completed}`);
+  } catch (error) {
+    logger.error('❌ Cron Error:', error);
+  }
+});
+
+cron.schedule('0 0 * * *', async () => {
+  logger.info('🗑️ Cleaning up failed reports...');
+  try {
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const result = await Report.deleteMany({
+      status: 'failed',
+      createdAt: { $lt: sevenDaysAgo }
+    });
+    logger.info(`🗑️ Deleted ${result.deletedCount} failed reports`);
+  } catch (error) {
+    logger.error('❌ Cleanup Error:', error);
+  }
+});
+
+// ---------- 10. Start Server ----------
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  logger.info('='.repeat(60));
+  logger.info(`🚀 Power Server V6 running on port ${PORT}`);
+  logger.info(`📊 Model: GROQ: llama-3.3-70b-versatile`);
+  logger.info(`⚡ Features: Real-time Competitor, NLP, PAA, SERP, Schema, Internal Links, Quality Score, Entities`);
+  logger.info(`📈 Health Check: /api/health`);
+  logger.info(`📊 Analytics: /api/analytics`);
+  logger.info('='.repeat(60));
+});
