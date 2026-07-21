@@ -1,14 +1,8 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { 
-  Download, FileText, Loader2, CheckCircle, Target, TrendingUp, 
-  Zap, Lightbulb, Link, Award, Sparkles, BarChart3, Globe,
-  ArrowUpRight, Clock, TrendingDown, Users, ExternalLink,
-  BookOpen, Video, DollarSign, Calendar, Gauge
-} from 'lucide-react';
+import { Download, FileText, Loader2, CheckCircle, Target, TrendingUp, Zap, Lightbulb } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 export default function Home() {
   const [keyword, setKeyword] = useState('');
@@ -28,6 +22,7 @@ export default function Home() {
 
   const exportPDF = async () => {
     if (!reportRef.current) return;
+    
     try {
       const element = reportRef.current;
       const canvas = await html2canvas(element, {
@@ -36,25 +31,70 @@ export default function Home() {
         logging: false,
         useCORS: true,
       });
+      
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
       let heightLeft = pdfHeight;
       let position = 0;
+      
       pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
       heightLeft -= pdf.internal.pageSize.getHeight();
+      
       while (heightLeft > 0) {
         position = heightLeft - pdfHeight;
         pdf.addPage();
         pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
         heightLeft -= pdf.internal.pageSize.getHeight();
       }
+      
       pdf.save(`RankForge-Report-${keyword.replace(/\s+/g, '-')}.pdf`);
     } catch (error) {
       console.error('PDF Export Error:', error);
       alert('PDF export failed. Please try again.');
     }
+  };
+
+  // ---------- HELPER FUNCTION: Filter Competitors ----------
+  const filterCompetitors = (competitors) => {
+    if (!competitors || !Array.isArray(competitors)) return [];
+    
+    // Blacklist: Domains/Platforms to remove
+    const blacklist = [
+      'reddit.com',
+      'youtube.com',
+      'youtu.be',
+      'facebook.com',
+      'fb.com',
+      'instagram.com',
+      'twitter.com',
+      'x.com',
+      'tiktok.com',
+      'linkedin.com',
+      'quora.com',
+      'pinterest.com',
+      'medium.com',
+      'blogspot.com', // Optional: Remove if you want only high-authority
+    ];
+
+    return competitors.filter(comp => {
+      // Check if the link contains any blacklisted domain
+      if (comp.link) {
+        const linkLower = comp.link.toLowerCase();
+        for (const domain of blacklist) {
+          if (linkLower.includes(domain)) {
+            return false; // Remove this competitor
+          }
+        }
+      }
+      // Also filter out generic titles (optional)
+      if (comp.title && comp.title.toLowerCase().includes('reddit')) return false;
+      if (comp.title && comp.title.toLowerCase().includes('youtube')) return false;
+      
+      return true; // Keep this competitor
+    });
   };
 
   const handleGenerate = async () => {
@@ -67,7 +107,7 @@ export default function Home() {
     setProgress(0);
     setReport(null);
     setError('');
-    setStatusMessage('⏳ Starting v4.0 analysis...');
+    setStatusMessage('⏳ Starting premium analysis...');
 
     if (intervalRef.current) clearInterval(intervalRef.current);
 
@@ -93,7 +133,12 @@ export default function Home() {
       const data = await res.json();
 
       if (data.cached) {
-        setReport(data.data);
+        // --- APPLY FILTER ON CACHED DATA ---
+        const filteredData = { ...data.data };
+        if (filteredData.competitor_table) {
+          filteredData.competitor_table = filterCompetitors(filteredData.competitor_table);
+        }
+        setReport(filteredData);
         setProgress(100);
         setStatusMessage('✅ Report ready from cache!');
         setLoading(false);
@@ -108,21 +153,28 @@ export default function Home() {
 
       intervalRef.current = setInterval(async () => {
         pollCount++;
-        if (pollCount < 8) setStatusMessage('🔍 Analyzing top competitors...');
-        else if (pollCount < 15) setStatusMessage('📊 Calculating keyword volume & backlinks...');
-        else if (pollCount < 22) setStatusMessage('🧠 Generating content strategy & readability score...');
-        else if (pollCount < 28) setStatusMessage('📈 Forecasting trends & pricing intelligence...');
-        else setStatusMessage('⏳ Finalizing v4.0 premium report...');
-        setProgress(Math.min(pollCount * 1.2, 95));
+        
+        if (pollCount < 10) setStatusMessage('🔍 Analyzing top competitors...');
+        else if (pollCount < 20) setStatusMessage('🧠 Generating premium insights...');
+        else setStatusMessage('⏳ Finalizing premium report...');
+        
+        setProgress(Math.min(pollCount * 1.5, 95));
 
         try {
           const statusRes = await fetch(`${baseUrl}/report/${reportId}`);
           if (!statusRes.ok) throw new Error('Status check failed');
+
           const statusData = await statusRes.json();
+
           if (statusData.status === 'completed') {
-            setReport(statusData.data);
+            // --- APPLY FILTER ON NEW DATA ---
+            const filteredData = { ...statusData.data };
+            if (filteredData.competitor_table) {
+              filteredData.competitor_table = filterCompetitors(filteredData.competitor_table);
+            }
+            setReport(filteredData);
             setProgress(100);
-            setStatusMessage('✅ v4.0 Premium report ready!');
+            setStatusMessage('✅ Premium report ready!');
             setLoading(false);
             clearInterval(intervalRef.current);
             intervalRef.current = null;
@@ -157,10 +209,10 @@ export default function Home() {
             RankForge
           </h1>
           <span className="ml-3 text-xs font-semibold bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1.5 rounded-full border border-purple-500/50 shadow-lg shadow-purple-500/20">
-            ENTERPRISE v4.0
+            ENTERPRISE v3.0
           </span>
           <p className="text-gray-400 mt-2 text-sm md:text-base">
-            v4.0: Keyword Volume • Backlink Gap • Readability Score • Trend Forecast • Pricing Intelligence • Content Requirements
+            Enterprise-grade SEO intelligence. AI analyzes competitors, finds gaps, and gives you actionable strategies.
           </p>
         </div>
 
@@ -171,7 +223,7 @@ export default function Home() {
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
-            placeholder='Enter keyword (e.g., "best phones in Lahore")'
+            placeholder='Enter keyword (e.g., "best cars in Pakistan")'
             className="flex-1 p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-400 transition"
             disabled={loading}
           />
@@ -183,7 +235,7 @@ export default function Home() {
             {loading ? (
               <>
                 <Loader2 className="animate-spin h-5 w-5" />
-                Analyzing v4.0...
+                Analyzing...
               </>
             ) : (
               '🚀 Generate Brief'
@@ -211,15 +263,14 @@ export default function Home() {
           </div>
         )}
 
-        {/* Premium Report - v4.0 */}
+        {/* Premium Report */}
         {report && (
           <div ref={reportRef} className="bg-slate-900/50 backdrop-blur-xl rounded-3xl border border-white/10 p-6 md:p-8 space-y-6">
-            {/* Header */}
             <div className="flex flex-wrap gap-3 justify-between items-center border-b border-white/10 pb-4">
               <div className="flex items-center gap-3">
                 <CheckCircle className="w-5 h-5 text-green-400" />
                 <h2 className="text-xl font-semibold text-green-400">
-                  v4.0 Report: <span className="text-white font-mono">{keyword}</span>
+                  Premium Report: <span className="text-white font-mono">{keyword}</span>
                 </h2>
               </div>
               <div className="flex gap-3">
@@ -232,7 +283,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Basic Stats */}
+            {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
                 <p className="text-gray-400 text-xs flex items-center gap-1"><Target size={14}/> Search Intent</p>
@@ -248,235 +299,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 🆕 Readability Score - v4.0 */}
-            {report.readability_score && (
-              <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 p-5 rounded-2xl border border-green-500/20">
-                <h3 className="font-bold text-green-300 flex items-center gap-2 mb-3">
-                  <BookOpen size={18}/> Readability Score (v4.0)
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="bg-white/5 p-2 rounded-lg text-center">
-                    <p className="text-gray-400 text-xs">Flesch-Kincaid</p>
-                    <p className="text-lg font-bold text-cyan-300">{report.readability_score.flesch_kincaid || 'N/A'}</p>
-                  </div>
-                  <div className="bg-white/5 p-2 rounded-lg text-center">
-                    <p className="text-gray-400 text-xs">Grade Level</p>
-                    <p className="text-lg font-bold text-yellow-300">{report.readability_score.grade_level || 'N/A'}</p>
-                  </div>
-                  <div className="bg-white/5 p-2 rounded-lg text-center">
-                    <p className="text-gray-400 text-xs">Sentence Length</p>
-                    <p className="text-lg font-bold text-purple-300">{report.readability_score.sentence_length || 'N/A'} words</p>
-                  </div>
-                  <div className="bg-white/5 p-2 rounded-lg text-center">
-                    <p className="text-gray-400 text-xs">Word Complexity</p>
-                    <p className="text-lg font-bold text-orange-300">{report.readability_score.word_complexity || 'N/A'}</p>
-                  </div>
-                </div>
-                {report.readability_score.recommendations && (
-                  <div className="mt-3">
-                    <p className="text-gray-400 text-sm">💡 Recommendations:</p>
-                    <ul className="list-disc pl-5 mt-1 text-sm text-gray-300">
-                      {report.readability_score.recommendations.map((r, i) => <li key={i}>{r}</li>)}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 🆕 Trend Forecast - v4.0 */}
-            {report.trend_forecast && (
-              <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 p-5 rounded-2xl border border-blue-500/20">
-                <h3 className="font-bold text-blue-300 flex items-center gap-2 mb-3">
-                  <Calendar size={18}/> Trend Forecast (v4.0)
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="bg-white/5 p-2 rounded-lg text-center">
-                    <p className="text-gray-400 text-xs">Growth</p>
-                    <p className="text-lg font-bold text-green-300">{report.trend_forecast.growth_percentage || 0}%</p>
-                  </div>
-                  <div className="bg-white/5 p-2 rounded-lg text-center">
-                    <p className="text-gray-400 text-xs">Seasonality</p>
-                    <p className="text-lg font-bold text-yellow-300">{report.trend_forecast.seasonality || 'N/A'}</p>
-                  </div>
-                  <div className="bg-white/5 p-2 rounded-lg text-center col-span-2">
-                    <p className="text-gray-400 text-xs">Peak Months</p>
-                    <p className="text-lg font-bold text-purple-300">{report.trend_forecast.peak_months?.join(', ') || 'N/A'}</p>
-                  </div>
-                </div>
-                {report.trend_forecast.recommendation && (
-                  <div className="mt-3">
-                    <p className="text-gray-400 text-sm">💡 Strategy:</p>
-                    <p className="text-sm text-gray-300 mt-1">{report.trend_forecast.recommendation}</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 🆕 Competitor Pricing - v4.0 */}
-            {report.competitor_pricing && (
-              <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 p-5 rounded-2xl border border-amber-500/20">
-                <h3 className="font-bold text-amber-300 flex items-center gap-2 mb-3">
-                  <DollarSign size={18}/> Competitor Pricing Intelligence (v4.0)
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <div className="bg-white/5 p-2 rounded-lg text-center">
-                    <p className="text-gray-400 text-xs">Average Price</p>
-                    <p className="text-lg font-bold text-cyan-300">PKR {report.competitor_pricing.average_price?.toLocaleString() || 'N/A'}</p>
-                  </div>
-                  <div className="bg-white/5 p-2 rounded-lg text-center">
-                    <p className="text-gray-400 text-xs">Price Range</p>
-                    <p className="text-sm font-bold text-yellow-300">{report.competitor_pricing.price_range || 'N/A'}</p>
-                  </div>
-                  <div className="bg-white/5 p-2 rounded-lg text-center">
-                    <p className="text-gray-400 text-xs">Value for Money</p>
-                    <p className="text-sm font-bold text-green-300">{report.competitor_pricing.value_for_money || 'N/A'}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 🆕 Content Requirements - v4.0 */}
-            {report.content_requirements && (
-              <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-5 rounded-2xl border border-purple-500/20">
-                <h3 className="font-bold text-purple-300 flex items-center gap-2 mb-3">
-                  <Gauge size={18}/> Content Requirements (v4.0)
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="bg-white/5 p-2 rounded-lg text-center">
-                    <p className="text-gray-400 text-xs">Recommended Words</p>
-                    <p className="text-lg font-bold text-cyan-300">{report.content_requirements.recommended_words?.toLocaleString() || 'N/A'}</p>
-                  </div>
-                  <div className="bg-white/5 p-2 rounded-lg text-center">
-                    <p className="text-gray-400 text-xs">Min-Max Words</p>
-                    <p className="text-sm font-bold text-yellow-300">{report.content_requirements.min_words?.toLocaleString()} - {report.content_requirements.max_words?.toLocaleString()}</p>
-                  </div>
-                  <div className="bg-white/5 p-2 rounded-lg text-center">
-                    <p className="text-gray-400 text-xs">Images Needed</p>
-                    <p className="text-lg font-bold text-purple-300">{report.content_requirements.images_needed || 'N/A'}</p>
-                  </div>
-                  <div className="bg-white/5 p-2 rounded-lg text-center">
-                    <p className="text-gray-400 text-xs">Media Format</p>
-                    <p className="text-sm font-bold text-orange-300">{report.content_requirements.media_format || 'N/A'}</p>
-                  </div>
-                </div>
-                {report.content_requirements.video_suggestions && report.content_requirements.video_suggestions.length > 0 && (
-                  <div className="mt-3">
-                    <p className="text-gray-400 text-sm flex items-center gap-1"><Video size={14}/> Video Suggestions:</p>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {report.content_requirements.video_suggestions.map((v, i) => (
-                        <span key={i} className="text-xs bg-blue-500/20 px-3 py-1 rounded-full border border-blue-500/30">{v}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Keyword Volume - Existing */}
-            {report.keyword_volume && (
-              <div className="bg-white/5 p-5 rounded-2xl border border-cyan-500/20">
-                <h3 className="font-bold text-cyan-300 flex items-center gap-2 mb-3">
-                  <BarChart3 size={18}/> Keyword Volume & Difficulty
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                  <div className="bg-white/5 p-2 rounded-lg text-center">
-                    <p className="text-gray-400 text-xs">Search Volume</p>
-                    <p className="text-lg font-bold text-cyan-300">{report.keyword_volume.search_volume?.toLocaleString() || 'N/A'}</p>
-                  </div>
-                  <div className="bg-white/5 p-2 rounded-lg text-center">
-                    <p className="text-gray-400 text-xs">Difficulty</p>
-                    <p className="text-lg font-bold text-yellow-300">{report.keyword_volume.keyword_difficulty}/100</p>
-                  </div>
-                  <div className="bg-white/5 p-2 rounded-lg text-center">
-                    <p className="text-gray-400 text-xs">CPC (USD)</p>
-                    <p className="text-lg font-bold text-green-300">${report.keyword_volume.cpc}</p>
-                  </div>
-                  <div className="bg-white/5 p-2 rounded-lg text-center">
-                    <p className="text-gray-400 text-xs">Competition</p>
-                    <p className={`text-lg font-bold ${report.keyword_volume.competition === 'Low' ? 'text-green-300' : report.keyword_volume.competition === 'Medium' ? 'text-yellow-300' : 'text-red-300'}`}>
-                      {report.keyword_volume.competition}
-                    </p>
-                  </div>
-                </div>
-                {report.keyword_volume.related_keywords && (
-                  <div>
-                    <p className="text-gray-400 text-sm mb-2">🔑 Related Keywords:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {report.keyword_volume.related_keywords.map((kw, i) => (
-                        <span key={i} className="text-xs bg-cyan-500/20 px-3 py-1 rounded-full border border-cyan-500/30">{kw}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Backlink Gap - Existing */}
-            {report.backlink_gap && (
-              <div className="bg-white/5 p-5 rounded-2xl border border-orange-500/20">
-                <h3 className="font-bold text-orange-300 flex items-center gap-2 mb-3">
-                  <Link size={18}/> Backlink Gap Analysis
-                </h3>
-                {report.backlink_gap.competitor_backlinks && report.backlink_gap.competitor_backlinks.length > 0 && (
-                  <div className="mb-4">
-                    <p className="text-gray-400 text-sm mb-2">🔗 Competitor Backlink Profile:</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      {report.backlink_gap.competitor_backlinks.map((comp, i) => (
-                        <div key={i} className="bg-white/5 p-2 rounded-lg border border-white/5">
-                          <p className="font-mono text-xs text-cyan-300 truncate">{comp.domain}</p>
-                          <div className="flex justify-between mt-1 text-sm">
-                            <span className="text-gray-400">Backlinks: <span className="text-white">{comp.backlink_count}</span></span>
-                            <span className="text-gray-400">DA: <span className="text-yellow-300">{comp.domain_authority}</span></span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {report.backlink_gap.gap_opportunities && report.backlink_gap.gap_opportunities.length > 0 && (
-                  <div className="mb-4">
-                    <p className="text-gray-400 text-sm mb-2">🎯 Backlink Opportunities:</p>
-                    <div className="space-y-2">
-                      {report.backlink_gap.gap_opportunities.map((opp, i) => (
-                        <div key={i} className="bg-white/5 p-2 rounded-lg border border-white/5">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <p className="text-sm font-medium text-purple-300">{opp.source}</p>
-                              <p className="text-xs text-gray-400">{opp.type} — {opp.reason}</p>
-                            </div>
-                            <span className={`text-xs px-2 py-1 rounded-full ${opp.priority === 'High' ? 'bg-green-500/20 text-green-300' : opp.priority === 'Medium' ? 'bg-yellow-500/20 text-yellow-300' : 'bg-gray-500/20 text-gray-300'}`}>
-                              {opp.priority || 'Medium'}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {report.backlink_gap.backlink_recommendations && (
-                  <div className="bg-gradient-to-r from-orange-500/10 to-amber-500/10 p-3 rounded-xl border border-orange-500/20">
-                    <h4 className="font-bold text-amber-300 text-sm mb-2">💡 Backlink Strategy</h4>
-                    <p className="text-sm text-gray-300">{report.backlink_gap.backlink_recommendations.strategy}</p>
-                    <div className="grid grid-cols-3 gap-2 mt-3">
-                      <div className="bg-white/5 p-1 rounded-lg text-center">
-                        <p className="text-gray-400 text-xs">Cost</p>
-                        <p className="text-xs text-gray-300">{report.backlink_gap.backlink_recommendations.estimated_cost}</p>
-                      </div>
-                      <div className="bg-white/5 p-1 rounded-lg text-center">
-                        <p className="text-gray-400 text-xs">Impact</p>
-                        <p className="text-xs text-gray-300">{report.backlink_gap.estimated_authority_gain || 'High'}</p>
-                      </div>
-                      <div className="bg-white/5 p-1 rounded-lg text-center">
-                        <p className="text-gray-400 text-xs">Opportunities</p>
-                        <p className="text-xs text-gray-300">{report.backlink_gap.total_backlink_opportunities || '10+'}</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Content Strategy */}
+            {/* Content Recommendations */}
             {report.content_recommendations && (
               <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-5 rounded-2xl border border-purple-500/20">
                 <h3 className="font-bold text-purple-300 flex items-center gap-2 mb-3">
@@ -498,30 +321,35 @@ export default function Home() {
               </div>
             )}
 
-            {/* Missing Headings */}
+            {/* --- 1. MISSING HEADINGS (KEEP 6) --- */}
             {report.missing_headings?.length > 0 && (
               <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                <h3 className="font-bold text-purple-300 mb-3">📌 Missing Headings</h3>
+                <h3 className="font-bold text-purple-300 mb-3">📌 Missing Headings (Content Gaps)</h3>
                 <ul className="list-disc pl-5 space-y-1.5 text-gray-300 text-sm">
                   {report.missing_headings.map((h, i) => <li key={i}>{h}</li>)}
                 </ul>
               </div>
             )}
 
-            {/* FAQ */}
+            {/* --- 2. FAQ QUESTIONS (LIMIT TO 4) --- */}
             {report.faq_questions?.length > 0 && (
               <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                <h3 className="font-bold text-yellow-300 mb-3">❓ FAQ Schema</h3>
+                <h3 className="font-bold text-yellow-300 mb-3">❓ FAQ Schema (Top 4 Questions)</h3>
                 <ul className="list-disc pl-5 space-y-1.5 text-gray-300 text-sm">
-                  {report.faq_questions.map((q, i) => <li key={i}>{q}</li>)}
+                  {/* ✅ SLICE: Show only first 4 FAQs */}
+                  {report.faq_questions.slice(0, 4).map((q, i) => <li key={i}>{q}</li>)}
                 </ul>
+                {report.faq_questions.length > 4 && (
+                  <p className="text-xs text-gray-500 mt-2">Showing 4 out of {report.faq_questions.length} questions</p>
+                )}
               </div>
             )}
 
-            {/* Competitor Table */}
+            {/* --- 3. COMPETITOR TABLE (FILTERED) --- */}
             {report.competitor_table?.length > 0 && (
               <div className="bg-white/5 p-5 rounded-2xl border border-white/10 overflow-x-auto">
-                <h3 className="font-bold text-orange-300 mb-3">🏆 Competitor Battle Card</h3>
+                <h3 className="font-bold text-orange-300 mb-3">🏆 Competitor Battle Card (Filtered)</h3>
+                <p className="text-xs text-gray-400 mb-2">*Social media (Reddit, YouTube, etc.) removed</p>
                 <table className="w-full text-sm min-w-[400px]">
                   <thead>
                     <tr className="border-b border-white/10 text-left text-gray-400">
@@ -570,11 +398,9 @@ export default function Home() {
               </div>
             )}
 
-            {/* Footer */}
-            <div className="text-xs text-gray-500 text-center pt-4 border-t border-white/5">
-              <p>RankForge Enterprise v4.0 | Powered by GROQ, SerpAPI & MongoDB</p>
-              <p className="mt-1">⚠️ Do not copy-paste raw data. Use these human-edited insights to create original content.</p>
-            </div>
+            <p className="text-xs text-gray-500 text-center pt-4 border-t border-white/5">
+              ⚠️ Do not copy-paste raw data. Use these human-edited insights to create original content.
+            </p>
           </div>
         )}
 
@@ -582,8 +408,8 @@ export default function Home() {
         {!loading && !report && !error && (
           <div className="text-center py-20 text-gray-500">
             <div className="text-7xl mb-4">🧠</div>
-            <p className="text-xl font-semibold text-gray-300">Enter a keyword to generate a v4.0 premium SEO brief</p>
-            <p className="text-sm text-gray-600 mt-2">16 Features • GROQ AI • SerpAPI • MongoDB</p>
+            <p className="text-xl font-semibold text-gray-300">Enter a keyword to generate a premium SEO brief</p>
+            <p className="text-sm text-gray-600 mt-2">Powered by GROQ, SerpAPI, and MongoDB</p>
           </div>
         )}
       </div>
