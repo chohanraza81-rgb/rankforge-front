@@ -1,25 +1,31 @@
 import { NextResponse } from 'next/server';
 
-// ===== GROQ SETUP =====
-import Groq from 'groq-sdk';
-
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
-
-// ===== HELPERS =====
+// ===== GROQ API CALL (Without SDK) =====
 const callGroq = async (prompt, systemMsg = 'You are an SEO expert. Return valid JSON.') => {
   try {
-    const response = await groq.chat.completions.create({
-      messages: [
-        { role: 'system', content: systemMsg },
-        { role: 'user', content: prompt }
-      ],
-      model: 'llama-3.3-70b-versatile',
-      temperature: 0.3,
-      max_tokens: 6000,
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
+      },
+      body: JSON.stringify({
+        messages: [
+          { role: 'system', content: systemMsg },
+          { role: 'user', content: prompt }
+        ],
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.3,
+        max_tokens: 6000,
+      })
     });
-    const text = response.choices[0].message.content;
+
+    if (!response.ok) {
+      throw new Error(`GROQ API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const text = data.choices[0].message.content;
     return JSON.parse(text.replace(/```json|```/g, '').trim());
   } catch (error) {
     console.error('❌ GROQ Error:', error.message);
@@ -56,7 +62,6 @@ export async function POST(request) {
             "trend": [{"month": "", "value": 0}]
           }
           Important: Filter KD < 25 keywords only. Max 10 keywords.
-          Intent can be: Commercial, Informational, Transactional, Navigational.
         `;
         const data = await callGroq(prompt);
         return NextResponse.json(data);
