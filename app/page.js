@@ -5,8 +5,7 @@ import {
   Download, Loader2, CheckCircle, TrendingUp, 
   Search, Users, FileText, Link, Calendar, ListChecks, 
   Target, Brain, Sparkles, Crown, ArrowRight, Copy,
-  Zap, Shield, Rocket, Star, Award, BarChart3,
-  Gauge, Eye, PenTool, Globe, Hash, Layers
+  Zap, Shield, Rocket, Star, Award, BarChart3
 } from 'lucide-react';
 
 export default function Home() {
@@ -28,10 +27,10 @@ export default function Home() {
     { id: 'backlink', label: '🔗 Backlinks', icon: <Link size={18} /> },
     { id: 'trend', label: '📈 Trend', icon: <Calendar size={18} /> },
     { id: 'onpage', label: '✅ On-Page', icon: <ListChecks size={18} /> },
-    { id: 'plan', label: '🗓️ 90 Day Plan', icon: <Target size={18} /> },
+    { id: 'plan', label: '🗓️ Plan', icon: <Target size={18} /> },
     { id: 'niche', label: '🧠 Niche', icon: <Brain size={18} /> },
     { id: 'rank', label: '🏆 Rank', icon: <Rocket size={18} /> },
-    { id: 'brief', label: '📄 Brief', icon: <PenTool size={18} /> },
+    { id: 'brief', label: '📄 Brief', icon: <FileText size={18} /> },
   ];
 
   const handleGenerate = async () => {
@@ -99,6 +98,7 @@ export default function Home() {
         default: throw new Error('Invalid tab');
       }
 
+      console.log(`📡 Calling: ${baseUrl}${endpoint}`);
       const response = await fetch(`${baseUrl}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -111,6 +111,7 @@ export default function Home() {
       }
 
       const data = await response.json();
+      console.log('✅ Data received:', data);
       setResults(data);
 
     } catch (err) {
@@ -167,6 +168,7 @@ export default function Home() {
         {/* Input Section */}
         <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-5 mb-6">
           <div className="space-y-3">
+            {/* ===== KEYWORD INPUT ===== */}
             {activeTab === 'keyword' && (
               <div>
                 <label className="text-sm text-gray-400 block mb-1">🎯 Seed Keyword</label>
@@ -174,14 +176,15 @@ export default function Home() {
                   type="text"
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
-                  placeholder='e.g., "best laptops for students"'
+                  placeholder='e.g., "best smartphones"'
                   className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
                   onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
                 />
-                <p className="text-xs text-gray-500 mt-1">50+ keywords • KD &lt; 25 filter • Real volume & CPC</p>
+                <p className="text-xs text-gray-500 mt-1">Real keywords from SERP • KD &lt; 25 filter</p>
               </div>
             )}
 
+            {/* ===== COMPETITOR INPUT ===== */}
             {activeTab === 'competitor' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
@@ -190,7 +193,7 @@ export default function Home() {
                     type="text"
                     value={keyword}
                     onChange={(e) => setKeyword(e.target.value)}
-                    placeholder='e.g., "best laptops"'
+                    placeholder='e.g., "best smartphones"'
                     className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
                   />
                 </div>
@@ -207,6 +210,7 @@ export default function Home() {
               </div>
             )}
 
+            {/* ===== OUTLINE INPUT ===== */}
             {activeTab === 'outline' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
@@ -215,7 +219,7 @@ export default function Home() {
                     type="text"
                     value={keyword}
                     onChange={(e) => setKeyword(e.target.value)}
-                    placeholder='e.g., "best laptops"'
+                    placeholder='e.g., "best smartphones"'
                     className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
                   />
                 </div>
@@ -237,6 +241,7 @@ export default function Home() {
               </div>
             )}
 
+            {/* ===== BACKLINK INPUT ===== */}
             {activeTab === 'backlink' && (
               <div>
                 <label className="text-sm text-gray-400 block mb-1">🔗 Keyword / Niche</label>
@@ -244,14 +249,15 @@ export default function Home() {
                   type="text"
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
-                  placeholder='e.g., "tech blogs" or "laptops"'
+                  placeholder='e.g., "tech blogs"'
                   className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
                   onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
                 />
-                <p className="text-xs text-gray-500 mt-1">50+ real sites • DA 20-60 • Contact emails</p>
+                <p className="text-xs text-gray-500 mt-1">Real domains from SERP • DA 20-60</p>
               </div>
             )}
 
+            {/* ===== TREND INPUT ===== */}
             {activeTab === 'trend' && (
               <div>
                 <label className="text-sm text-gray-400 block mb-1">📈 Keyword</label>
@@ -259,13 +265,14 @@ export default function Home() {
                   type="text"
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
-                  placeholder='e.g., "best laptops"'
+                  placeholder='e.g., "best smartphones"'
                   className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
                   onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
                 />
               </div>
             )}
 
+            {/* ===== ON-PAGE INPUT ===== */}
             {activeTab === 'onpage' && (
               <div>
                 <label className="text-sm text-gray-400 block mb-1">📄 Content</label>
@@ -276,10 +283,11 @@ export default function Home() {
                   rows="4"
                   className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500 resize-none"
                 />
-                <p className="text-xs text-gray-500 mt-1">15 point checklist • Detailed fix instructions</p>
+                <p className="text-xs text-gray-500 mt-1">15 point checklist • Real analysis</p>
               </div>
             )}
 
+            {/* ===== PLAN INPUT ===== */}
             {activeTab === 'plan' && (
               <div>
                 <label className="text-sm text-gray-400 block mb-1">🗓️ Keyword</label>
@@ -287,7 +295,7 @@ export default function Home() {
                   type="text"
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
-                  placeholder='e.g., "best laptops"'
+                  placeholder='e.g., "best smartphones"'
                   className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
                   onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
                 />
@@ -295,6 +303,7 @@ export default function Home() {
               </div>
             )}
 
+            {/* ===== NICHE INPUT ===== */}
             {activeTab === 'niche' && (
               <div>
                 <label className="text-sm text-gray-400 block mb-1">🧠 Select Niche</label>
@@ -315,9 +324,11 @@ export default function Home() {
                   <option value="Travel">✈️ Travel</option>
                   <option value="Food & Cooking">🍳 Food & Cooking</option>
                 </select>
+                <p className="text-xs text-gray-500 mt-1">Real competitors + insights from SERP</p>
               </div>
             )}
 
+            {/* ===== RANK INPUT ===== */}
             {activeTab === 'rank' && (
               <div>
                 <label className="text-sm text-gray-400 block mb-1">🏆 Your Domain</label>
@@ -333,6 +344,7 @@ export default function Home() {
               </div>
             )}
 
+            {/* ===== BRIEF INPUT ===== */}
             {activeTab === 'brief' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
@@ -341,7 +353,7 @@ export default function Home() {
                     type="text"
                     value={keyword}
                     onChange={(e) => setKeyword(e.target.value)}
-                    placeholder='e.g., "best laptops"'
+                    placeholder='e.g., "best smartphones"'
                     className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
                   />
                 </div>
@@ -363,15 +375,16 @@ export default function Home() {
               </div>
             )}
 
+            {/* Generate Button */}
             <button
               onClick={handleGenerate}
               disabled={loading}
               className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-[1.02] transition rounded-xl font-bold shadow-lg shadow-purple-500/30 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? (
-                <><Loader2 className="animate-spin h-5 w-5" /> Generating...</>
+                <><Loader2 className="animate-spin h-5 w-5" /> Generating Real Data...</>
               ) : (
-                <><Sparkles size={18} /> Generate {activeTab === 'keyword' ? '50+ Keywords' : activeTab === 'competitor' ? 'Real Competitors' : activeTab === 'outline' ? 'Content Outline' : activeTab === 'backlink' ? '50+ Backlinks' : activeTab === 'trend' ? 'Trend Report' : activeTab === 'onpage' ? 'SEO Checklist' : activeTab === 'plan' ? '90 Day Plan' : activeTab === 'niche' ? 'Niche Intel' : activeTab === 'rank' ? 'Rank Check' : 'Content Brief'}</>
+                <><Sparkles size={18} /> Generate</>
               )}
             </button>
           </div>
@@ -401,10 +414,10 @@ export default function Home() {
               </button>
             </div>
 
-            {/* ===== KEYWORD RESEARCH ===== */}
+            {/* ===== KEYWORD RESULTS ===== */}
             {activeTab === 'keyword' && results.keywords && (
-              <div className="space-y-4">
-                <div className="text-sm text-gray-400 mb-1">{results.keywords.length} keywords found (KD &lt; 25)</div>
+              <div className="space-y-3">
+                <div className="text-sm text-gray-400 mb-1">{results.keywords.length} real keywords found</div>
                 <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto pr-2">
                   {results.keywords.map((kw, i) => (
                     <div key={i} className="p-3 rounded-xl border border-white/10 bg-white/5">
@@ -443,10 +456,10 @@ export default function Home() {
               </div>
             )}
 
-            {/* ===== COMPETITOR GAP ===== */}
+            {/* ===== COMPETITOR RESULTS ===== */}
             {activeTab === 'competitor' && results.competitors && (
-              <div className="space-y-4">
-                <div className="text-sm text-gray-400 mb-1">{results.competitors.length} real competitors analyzed</div>
+              <div className="space-y-3">
+                <div className="text-sm text-gray-400 mb-1">{results.competitors.length} real competitors</div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-2">
                   {results.competitors.map((comp, i) => (
                     <div key={i} className="bg-white/5 p-3 rounded-xl border border-white/10">
@@ -494,9 +507,9 @@ export default function Home() {
               </div>
             )}
 
-            {/* ===== CONTENT OUTLINE ===== */}
+            {/* ===== OTHER TABS ===== */}
             {activeTab === 'outline' && results.outline && (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-4 rounded-xl border border-purple-500/20">
                   <h3 className="text-lg font-bold text-cyan-300">{results.outline.h1}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-1 mt-2 text-xs">
@@ -504,9 +517,9 @@ export default function Home() {
                     <div><span className="text-gray-400">📝 Meta Desc:</span> {results.outline.meta_description}</div>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="bg-white/5 p-3 rounded-xl">
-                    <h4 className="font-bold text-yellow-300 mb-1.5 text-xs">📌 H2 Headings (10)</h4>
+                    <h4 className="font-bold text-yellow-300 mb-1.5 text-xs">📌 H2 Headings</h4>
                     <ul className="space-y-0.5 text-xs max-h-40 overflow-y-auto">
                       {results.outline.h2_headings?.map((h, i) => (
                         <li key={i} className="flex items-start gap-1.5">
@@ -518,13 +531,13 @@ export default function Home() {
                   </div>
                   <div className="space-y-3">
                     <div className="bg-white/5 p-3 rounded-xl">
-                      <h4 className="font-bold text-yellow-300 mb-1.5 text-xs">❓ FAQ (10)</h4>
+                      <h4 className="font-bold text-yellow-300 mb-1.5 text-xs">❓ FAQ</h4>
                       <ul className="list-disc pl-4 text-xs space-y-0.5 text-gray-300 max-h-32 overflow-y-auto">
                         {results.outline.faq?.map((f, i) => <li key={i}>{f}</li>)}
                       </ul>
                     </div>
                     <div className="bg-white/5 p-3 rounded-xl">
-                      <h4 className="font-bold text-green-300 mb-1.5 text-xs">🔑 LSI Keywords (30)</h4>
+                      <h4 className="font-bold text-green-300 mb-1.5 text-xs">🔑 LSI Keywords</h4>
                       <div className="flex flex-wrap gap-1">
                         {results.outline.lsi_keywords?.map((l, i) => (
                           <span key={i} className="text-[9px] bg-green-500/20 px-1.5 py-0.5 rounded-full border border-green-500/20">{l}</span>
@@ -541,7 +554,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* ===== BACKLINK OPPORTUNITIES ===== */}
             {activeTab === 'backlink' && results.backlinks && (
               <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
                 <div className="text-sm text-gray-400 mb-1">{results.backlinks.length} real backlink opportunities</div>
@@ -567,9 +579,8 @@ export default function Home() {
               </div>
             )}
 
-            {/* ===== TREND ===== */}
             {activeTab === 'trend' && results.trend && (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="bg-white/5 p-4 rounded-xl">
                   <span className="text-gray-400 text-xs">📈 12 Month Trend:</span>
                   <div className="flex items-end gap-1 h-28 mt-2">
@@ -594,7 +605,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* ===== ON-PAGE SEO ===== */}
             {activeTab === 'onpage' && results.checklist && (
               <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
                 {results.checklist.map((item, i) => (
@@ -624,7 +634,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* ===== 90 DAY PLAN ===== */}
             {activeTab === 'plan' && results.plan && (
               <div className="space-y-2 max-h-[450px] overflow-y-auto pr-2">
                 {results.plan.map((week, i) => (
@@ -648,14 +657,13 @@ export default function Home() {
               </div>
             )}
 
-            {/* ===== NICHE MEMORY ===== */}
             {activeTab === 'niche' && results.niche && (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-4 rounded-xl border border-purple-500/20">
                   <h3 className="font-bold text-cyan-300 text-xl">{results.niche.name}</h3>
                   <p className="text-sm text-gray-400 mt-1">{results.niche.description}</p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="bg-white/5 p-3 rounded-xl">
                     <h4 className="font-bold text-yellow-300 mb-1.5 text-sm">🏆 Top Competitors</h4>
                     <ul className="list-disc pl-4 text-sm space-y-0.5">
@@ -672,9 +680,8 @@ export default function Home() {
               </div>
             )}
 
-            {/* ===== RANK CHECKER ===== */}
             {activeTab === 'rank' && results.rank && (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="bg-gradient-to-r from-green-500/10 to-purple-500/10 p-4 rounded-xl text-center border border-green-500/20">
                     <div className="text-4xl font-bold text-cyan-300">#{results.rank.position || 'N/A'}</div>
@@ -700,9 +707,8 @@ export default function Home() {
               </div>
             )}
 
-            {/* ===== CONTENT BRIEF ===== */}
             {activeTab === 'brief' && results.brief && (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-4 rounded-xl border border-purple-500/20">
                   <h3 className="text-lg font-bold text-cyan-300">{results.brief.title}</h3>
                   <p className="text-sm text-gray-400 mt-1">{results.brief.description}</p>
