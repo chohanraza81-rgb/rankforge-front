@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Download, Loader2, CheckCircle, TrendingUp, 
   Search, Users, FileText, Link, Calendar, ListChecks, 
-  Target, Brain, Sparkles, Crown, ArrowRight, Copy
+  Target, Brain, Sparkles, Crown, ArrowRight, Copy,
+  Zap, Shield, Rocket, Star, Award, BarChart3
 } from 'lucide-react';
 
 export default function Home() {
@@ -28,16 +29,10 @@ export default function Home() {
     { id: 'onpage', label: '✅ On-Page', icon: <ListChecks size={18} /> },
     { id: 'plan', label: '🗓️ Plan', icon: <Target size={18} /> },
     { id: 'niche', label: '🧠 Niche', icon: <Brain size={18} /> },
+    { id: 'rank', label: '🏆 Rank', icon: <Rocket size={18} /> },
   ];
 
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   const handleGenerate = async () => {
-    // Validation
     if (activeTab === 'keyword' && !keyword.trim()) {
       setError('Please enter a keyword.');
       return;
@@ -51,7 +46,7 @@ export default function Home() {
       return;
     }
     if (activeTab === 'backlink' && !keyword.trim()) {
-      setError('Please enter a keyword or niche.');
+      setError('Please enter a keyword.');
       return;
     }
     if (activeTab === 'trend' && !keyword.trim()) {
@@ -70,55 +65,33 @@ export default function Home() {
       setError('Please select a niche.');
       return;
     }
+    if (activeTab === 'rank' && !domain.trim()) {
+      setError('Please enter your domain.');
+      return;
+    }
 
     setLoading(true);
     setError('');
     setResults(null);
 
     try {
-      // ✅ FIX: Use relative path for Next.js API routes
-      const baseUrl = '/api/v8';
+      const baseUrl = '/api/v9';
       let endpoint = '';
       let payload = {};
 
       switch (activeTab) {
-        case 'keyword':
-          endpoint = '/keyword-research';
-          payload = { keyword };
-          break;
-        case 'competitor':
-          endpoint = '/competitor-gap';
-          payload = { keyword, domain };
-          break;
-        case 'outline':
-          endpoint = '/content-outline';
-          payload = { keyword, niche: selectedNiche };
-          break;
-        case 'backlink':
-          endpoint = '/backlink-opportunities';
-          payload = { keyword };
-          break;
-        case 'trend':
-          endpoint = '/trend-tracker';
-          payload = { keyword };
-          break;
-        case 'onpage':
-          endpoint = '/onpage-seo';
-          payload = { url, content };
-          break;
-        case 'plan':
-          endpoint = '/action-plan';
-          payload = { keyword };
-          break;
-        case 'niche':
-          endpoint = '/niche-memory';
-          payload = { niche: selectedNiche };
-          break;
-        default:
-          throw new Error('Invalid tab');
+        case 'keyword': endpoint = '/keyword-research'; payload = { keyword }; break;
+        case 'competitor': endpoint = '/competitor-gap'; payload = { keyword, domain }; break;
+        case 'outline': endpoint = '/content-outline'; payload = { keyword, niche: selectedNiche }; break;
+        case 'backlink': endpoint = '/backlink-opportunities'; payload = { keyword }; break;
+        case 'trend': endpoint = '/trend-tracker'; payload = { keyword }; break;
+        case 'onpage': endpoint = '/onpage-seo'; payload = { url, content }; break;
+        case 'plan': endpoint = '/action-plan'; payload = { keyword }; break;
+        case 'niche': endpoint = '/niche-memory'; payload = { niche: selectedNiche }; break;
+        case 'rank': endpoint = '/rank-checker'; payload = { domain }; break;
+        default: throw new Error('Invalid tab');
       }
 
-      console.log(`📡 Calling: ${baseUrl}${endpoint}`);
       const response = await fetch(`${baseUrl}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -141,153 +114,10 @@ export default function Home() {
     }
   };
 
-  // ✅ FAKE DATA FOR DEMO (If backend not ready)
-  const getDemoData = () => {
-    const keyword = 'laptops for students';
-    const niche = 'Pakistan';
-    
-    const demoData = {
-      keyword: {
-        keywords: [
-          { keyword: 'best laptops for students', volume: 2200, kd: 22, cpc: 1.8, intent: 'Commercial' },
-          { keyword: 'cheap laptops for students', volume: 1800, kd: 18, cpc: 1.2, intent: 'Transactional' },
-          { keyword: 'best laptops for college students', volume: 1500, kd: 20, cpc: 1.5, intent: 'Informational' },
-          { keyword: 'laptops for students under 500', volume: 1200, kd: 15, cpc: 0.9, intent: 'Transactional' },
-          { keyword: 'best budget laptops for students', volume: 1000, kd: 12, cpc: 0.8, intent: 'Commercial' },
-        ],
-        trend: [
-          { month: 'Jan', value: 45 }, { month: 'Feb', value: 50 },
-          { month: 'Mar', value: 55 }, { month: 'Apr', value: 60 },
-          { month: 'May', value: 70 }, { month: 'Jun', value: 80 },
-          { month: 'Jul', value: 85 }, { month: 'Aug', value: 90 },
-          { month: 'Sep', value: 95 }, { month: 'Oct', value: 100 },
-          { month: 'Nov', value: 95 }, { month: 'Dec', value: 85 }
-        ]
-      },
-      competitor: {
-        competitors: [
-          { rank: 1, domain: 'techradar.com', authority: 85, word_count: 2500, backlinks: 4500, 
-            missing_headings: ['Best Laptops for Students', 'Student Discounts'], 
-            missing_faq: ['Which laptop is best for students?'] },
-          { rank: 2, domain: 'cnet.com', authority: 82, word_count: 2200, backlinks: 3800,
-            missing_headings: ['College Laptop Guide', 'Budget Options'],
-            missing_faq: ['What is the best cheap laptop?'] },
-          { rank: 3, domain: 'pcmag.com', authority: 80, word_count: 2000, backlinks: 3200,
-            missing_headings: ['Student Tech Guide', 'Laptop Comparisons'],
-            missing_faq: ['Which brand is best for students?'] }
-        ],
-        actions: [
-          'Create a dedicated "Best Laptops for Students" page with student-specific features',
-          'Add a comparison table of top 5 student laptops with prices and specs',
-          'Include student discount information for major brands'
-        ]
-      },
-      outline: {
-        outline: {
-          h1: 'Best Laptops for Students in 2026: Complete Buying Guide',
-          meta_title: 'Best Laptops for Students 2026 | Expert Reviews & Buying Guide',
-          meta_description: 'Find the best laptops for students with expert reviews, comparisons, and student discount information.',
-          h2_headings: [
-            'Top 10 Laptops for Students in 2026',
-            'Best Budget Laptops Under $500',
-            'Best Laptops for Engineering Students',
-            'Best Laptops for Business Students',
-            'Best Laptops for Graphic Design Students',
-            'Student Discounts: How to Save Money',
-            'Laptop Buying Guide for Students',
-            'FAQs About Student Laptops'
-          ],
-          faq: [
-            'What is the best laptop for students?',
-            'Which laptop has the best battery life for students?',
-            'What is the cheapest laptop for college students?',
-            'Is MacBook worth it for students?',
-            'How much RAM do students need?'
-          ],
-          lsi_keywords: [
-            'student laptop deals', 'college laptop guide', 'budget laptops',
-            'student discounts', 'laptop comparison', 'best value laptops',
-            'student tech', 'laptop buying guide', 'student computers',
-            'laptop for school', 'student macbook', 'chromebook for students',
-            'student pc', 'laptop under 1000', 'student technology'
-          ],
-          local_angle: `🇵🇰 For Pakistani students: Include local pricing in PKR, available brands in Pakistan (Dell, HP, Lenovo), and local warranty information.`
-        }
-      },
-      backlink: {
-        backlinks: [
-          { domain: 'studenttech.com', da: 45, email: 'editor@studenttech.com', link_type: 'Guest Post', opportunity: 'High' },
-          { domain: 'teachblog.com', da: 38, email: 'admin@teachblog.com', link_type: 'Resource Page', opportunity: 'Medium' },
-          { domain: 'edutech.com', da: 42, email: 'contact@edutech.com', link_type: 'Guest Post', opportunity: 'High' },
-          { domain: 'studentguide.com', da: 35, email: 'info@studentguide.com', link_type: 'Resource Page', opportunity: 'Medium' },
-          { domain: 'techparent.com', da: 28, email: 'editor@techparent.com', link_type: 'Guest Post', opportunity: 'Medium' }
-        ]
-      },
-      trend: {
-        trend: [
-          { month: 'Jan', value: 45 }, { month: 'Feb', value: 50 },
-          { month: 'Mar', value: 55 }, { month: 'Apr', value: 60 },
-          { month: 'May', value: 70 }, { month: 'Jun', value: 80 },
-          { month: 'Jul', value: 85 }, { month: 'Aug', value: 90 },
-          { month: 'Sep', value: 95 }, { month: 'Oct', value: 100 },
-          { month: 'Nov', value: 95 }, { month: 'Dec', value: 85 }
-        ],
-        peak_month: 'October',
-        best_publish_date: '2026-09-15'
-      },
-      onpage: {
-        checklist: [
-          { check: 'Title Tag', status: 'pass', issue: '' },
-          { check: 'Meta Description', status: 'pass', issue: '' },
-          { check: 'Keyword Density', status: 'pass', issue: '' },
-          { check: 'Image Alt Tags', status: 'fail', issue: 'Add alt text to images' },
-          { check: 'Internal Links', status: 'pass', issue: '' },
-          { check: 'H1 Tag', status: 'pass', issue: '' },
-          { check: 'H2 Headings', status: 'pass', issue: '' },
-          { check: 'Readability', status: 'pass', issue: '' },
-          { check: 'Word Count', status: 'pass', issue: '' },
-          { check: 'External Links', status: 'fail', issue: 'Add 2-3 external authority links' }
-        ],
-        score: 8
-      },
-      plan: {
-        plan: [
-          { week: 1, focus: 'Research & Strategy', priority: 'High', tasks: ['Keyword research', 'Competitor analysis', 'Content strategy'] },
-          { week: 2, focus: 'Content Creation - Part 1', priority: 'High', tasks: ['Write main article', 'Create comparison table', 'Add images'] },
-          { week: 3, focus: 'Content Creation - Part 2', priority: 'High', tasks: ['Write supporting posts', 'Create FAQ section', 'Optimize meta tags'] },
-          { week: 4, focus: 'On-Page SEO', priority: 'High', tasks: ['Internal linking', 'Image optimization', 'Schema markup'] },
-          { week: 5, focus: 'Backlink Outreach - Part 1', priority: 'Medium', tasks: ['Find 10 prospects', 'Email outreach', 'Guest post pitch'] },
-          { week: 6, focus: 'Backlink Outreach - Part 2', priority: 'Medium', tasks: ['Follow up emails', 'Guest post writing', 'Resource page links'] },
-          { week: 7, focus: 'Monitoring', priority: 'Medium', tasks: ['Track rankings', 'Analyze traffic', 'Monitor backlinks'] },
-          { week: 8, focus: 'Refinement', priority: 'Medium', tasks: ['Update content', 'Add new data', 'Improve user engagement'] },
-          { week: 9, focus: 'Content Expansion', priority: 'Low', tasks: ['Create video content', 'Design infographics', 'Write case studies'] },
-          { week: 10, focus: 'Social Promotion', priority: 'Low', tasks: ['Share on social media', 'Engage with community', 'Build audience'] },
-          { week: 11, focus: 'Analysis & Reporting', priority: 'Low', tasks: ['Performance review', 'ROI analysis', 'Weekly reporting'] },
-          { week: 12, focus: 'Optimization & Scaling', priority: 'Low', tasks: ['Scale what works', 'Optimize weak spots', 'Plan next campaign'] }
-        ]
-      },
-      niche: {
-        niche: {
-          name: 'Pakistan Mobile',
-          description: 'Smartphone market in Pakistan with focus on budget and mid-range phones.',
-          competitors: ['PakWheels', 'WhatMobile', 'MobileZone', 'PhoneWorld'],
-          insights: [
-            'Budget phones under PKR 50,000 have highest search volume',
-            'Samsung and Xiaomi dominate the Pakistani smartphone market',
-            'Mobile reviews with local pricing get 70% more clicks',
-            'Video reviews perform better than text-only content in Pakistan'
-          ]
-        }
-      }
-    };
-
-    return demoData[activeTab] || { message: 'Data not available' };
-  };
-
-  // ✅ USE DEMO DATA IF BACKEND NOT READY
-  const useDemoData = () => {
-    const data = getDemoData();
-    setResults(data);
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -297,34 +127,32 @@ export default function Home() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-2">
             <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 text-transparent bg-clip-text">
-              RankForge V8
+              RankForge V9
             </h1>
             <Crown className="w-8 h-8 text-yellow-400" />
+            <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30">ULTIMATE</span>
           </div>
           <p className="text-gray-400 text-sm md:text-base">
-            ⚡ Personal SEO Ranking Engine • <span className="text-cyan-400">90 Days to Top</span>
+            ⚡ Real SEO Ranking Engine • <span className="text-cyan-400">90 Days to Top</span>
           </p>
         </div>
 
-        {/* 8 Tabs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
+        {/* 9 Tabs */}
+        <div className="grid grid-cols-3 md:grid-cols-9 gap-2 mb-8">
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id);
-                setResults(null);
-                setError('');
-              }}
-              className={`p-4 rounded-2xl border-2 transition-all flex items-center justify-center gap-2 ${
+              onClick={() => { setActiveTab(tab.id); setResults(null); setError(''); }}
+              className={`p-3 rounded-2xl border-2 transition-all text-center ${
                 activeTab === tab.id
                   ? 'border-purple-500 bg-purple-500/20 shadow-lg shadow-purple-500/30'
                   : 'border-white/10 bg-white/5 hover:bg-white/10'
               }`}
             >
-              {tab.icon}
-              <span className="text-sm font-medium hidden sm:inline">{tab.label}</span>
-              <span className="text-sm font-medium sm:hidden">{tab.label.substring(0, 4)}</span>
+              <div className="flex flex-col items-center gap-1">
+                {tab.icon}
+                <span className="text-[10px] font-medium">{tab.label}</span>
+              </div>
             </button>
           ))}
         </div>
@@ -332,14 +160,9 @@ export default function Home() {
         {/* Input Section */}
         <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6 mb-6">
           <div className="space-y-4">
-            {/* Keyword Input - Most tabs use this */}
-            {(activeTab === 'keyword' || activeTab === 'outline' || 
-              activeTab === 'trend' || activeTab === 'plan' || 
-              activeTab === 'backlink') && (
+            {activeTab === 'keyword' && (
               <div>
-                <label className="text-sm text-gray-400 block mb-1">
-                  {activeTab === 'backlink' ? '🔗 Keyword / Niche' : '🎯 Keyword'}
-                </label>
+                <label className="text-sm text-gray-400 block mb-1">🎯 Keyword</label>
                 <input
                   type="text"
                   value={keyword}
@@ -348,16 +171,10 @@ export default function Home() {
                   className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
                   onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
                 />
-                {activeTab === 'keyword' && (
-                  <p className="text-xs text-gray-500 mt-1">KD &lt; 25 wale keywords top par dikhenge</p>
-                )}
-                {activeTab === 'backlink' && (
-                  <p className="text-xs text-gray-500 mt-1">DA 20-60 wali sites filter hongi</p>
-                )}
+                <p className="text-xs text-gray-500 mt-1">KD &lt; 25 wale keywords top par dikhenge</p>
               </div>
             )}
 
-            {/* Competitor Tab */}
             {activeTab === 'competitor' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -383,7 +200,92 @@ export default function Home() {
               </div>
             )}
 
-            {/* Niche Tab */}
+            {activeTab === 'outline' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-gray-400 block mb-1">📝 Keyword</label>
+                  <input
+                    type="text"
+                    value={keyword}
+                    onChange={(e) => setKeyword(e.target.value)}
+                    placeholder='e.g., "best laptops"'
+                    className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm text-gray-400 block mb-1">🌍 Local Angle</label>
+                  <select
+                    value={selectedNiche}
+                    onChange={(e) => setSelectedNiche(e.target.value)}
+                    className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white"
+                  >
+                    <option value="">Select Location</option>
+                    <option value="Pakistan">🇵🇰 Pakistan</option>
+                    <option value="UAE">🇦🇪 UAE</option>
+                    <option value="India">🇮🇳 India</option>
+                    <option value="UK">🇬🇧 UK</option>
+                    <option value="USA">🇺🇸 USA</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'backlink' && (
+              <div>
+                <label className="text-sm text-gray-400 block mb-1">🔗 Keyword / Niche</label>
+                <input
+                  type="text"
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                  placeholder='e.g., "tech blogs" or "laptops"'
+                  className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
+                  onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
+                />
+                <p className="text-xs text-gray-500 mt-1">DA 20-60 wali sites filter hongi</p>
+              </div>
+            )}
+
+            {activeTab === 'trend' && (
+              <div>
+                <label className="text-sm text-gray-400 block mb-1">📈 Keyword</label>
+                <input
+                  type="text"
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                  placeholder='e.g., "best laptops"'
+                  className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
+                  onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
+                />
+              </div>
+            )}
+
+            {activeTab === 'onpage' && (
+              <div>
+                <label className="text-sm text-gray-400 block mb-1">📄 Content</label>
+                <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder='Paste your content here...'
+                  rows="4"
+                  className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500 resize-none"
+                />
+              </div>
+            )}
+
+            {activeTab === 'plan' && (
+              <div>
+                <label className="text-sm text-gray-400 block mb-1">🗓️ Keyword</label>
+                <input
+                  type="text"
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                  placeholder='e.g., "best laptops"'
+                  className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
+                  onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
+                />
+              </div>
+            )}
+
             {activeTab === 'niche' && (
               <div>
                 <label className="text-sm text-gray-400 block mb-1">🧠 Select Niche</label>
@@ -400,47 +302,38 @@ export default function Home() {
                   <option value="Health & Fitness">💪 Health & Fitness</option>
                   <option value="Real Estate">🏠 Real Estate</option>
                   <option value="E-commerce">🛒 E-commerce</option>
+                  <option value="Education">📚 Education</option>
+                  <option value="Travel">✈️ Travel</option>
                 </select>
               </div>
             )}
 
-            {/* On-Page Tab */}
-            {activeTab === 'onpage' && (
+            {activeTab === 'rank' && (
               <div>
-                <label className="text-sm text-gray-400 block mb-1">📄 Content</label>
-                <textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder='Paste your content here...'
-                  rows="4"
-                  className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500 resize-none"
+                <label className="text-sm text-gray-400 block mb-1">🏆 Your Domain</label>
+                <input
+                  type="text"
+                  value={domain}
+                  onChange={(e) => setDomain(e.target.value)}
+                  placeholder='e.g., "mywebsite.com"'
+                  className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
+                  onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
                 />
+                <p className="text-xs text-gray-500 mt-1">Check your domain's current ranking position</p>
               </div>
             )}
 
-            {/* Generate Button */}
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={handleGenerate}
-                disabled={loading}
-                className="flex-1 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-[1.02] transition rounded-xl font-bold shadow-lg shadow-purple-500/30 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <><Loader2 className="animate-spin h-5 w-5" /> Generating...</>
-                ) : (
-                  <><Sparkles size={18} /> Generate</>
-                )}
-              </button>
-              
-              {/* Demo Button - For testing without backend */}
-              <button
-                onClick={useDemoData}
-                disabled={loading}
-                className="px-6 py-4 bg-white/10 hover:bg-white/20 transition rounded-xl font-bold flex items-center justify-center gap-2 text-sm"
-              >
-                <CheckCircle size={18} /> Demo
-              </button>
-            </div>
+            <button
+              onClick={handleGenerate}
+              disabled={loading}
+              className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-[1.02] transition rounded-xl font-bold shadow-lg shadow-purple-500/30 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <><Loader2 className="animate-spin h-5 w-5" /> Generating...</>
+              ) : (
+                <><Sparkles size={18} /> Generate</>
+              )}
+            </button>
           </div>
         </div>
 
@@ -457,32 +350,28 @@ export default function Home() {
             <div className="flex flex-wrap justify-between items-center mb-4 gap-3">
               <h2 className="text-xl font-semibold text-green-400 flex items-center gap-2">
                 <CheckCircle size={20} /> Report Ready
-                <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded-full">V8</span>
+                <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded-full">V9</span>
               </h2>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => copyToClipboard(JSON.stringify(results, null, 2))}
-                  className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm flex items-center gap-2 transition"
-                >
-                  {copied ? <CheckCircle size={16} className="text-green-400"/> : <Copy size={16} />}
-                  {copied ? 'Copied!' : 'Copy'}
-                </button>
-              </div>
+              <button
+                onClick={() => copyToClipboard(JSON.stringify(results, null, 2))}
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm flex items-center gap-2 transition"
+              >
+                {copied ? <CheckCircle size={16} className="text-green-400"/> : <Copy size={16} />}
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
             </div>
 
-            {/* ===== TAB 1: KEYWORD RESEARCH ===== */}
+            {/* ===== KEYWORD RESEARCH ===== */}
             {activeTab === 'keyword' && results.keywords && (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-3">
                   {results.keywords.map((kw, i) => (
-                    <div key={i} className={`p-4 rounded-xl border ${
-                      kw.kd < 25 ? 'border-green-500/30 bg-green-500/5' : 'border-white/10 bg-white/5'
-                    }`}>
+                    <div key={i} className="p-4 rounded-xl border border-white/10 bg-white/5">
                       <div className="flex flex-wrap justify-between items-center gap-2">
                         <div>
                           <span className="font-medium text-cyan-300">{kw.keyword}</span>
                           {kw.kd < 25 && (
-                            <span className="ml-2 text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded-full">⭐ Easy</span>
+                            <span className="ml-2 text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded-full">⭐ Easy KD</span>
                           )}
                         </div>
                         <div className="flex flex-wrap gap-2 text-xs">
@@ -515,7 +404,7 @@ export default function Home() {
               </div>
             )}
 
-            {/* ===== TAB 2: COMPETITOR GAP ===== */}
+            {/* ===== COMPETITOR GAP ===== */}
             {activeTab === 'competitor' && results.competitors && (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -565,7 +454,7 @@ export default function Home() {
               </div>
             )}
 
-            {/* ===== TAB 3: CONTENT OUTLINE ===== */}
+            {/* ===== CONTENT OUTLINE ===== */}
             {activeTab === 'outline' && results.outline && (
               <div className="space-y-4">
                 <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-4 rounded-xl border border-purple-500/20">
@@ -612,7 +501,7 @@ export default function Home() {
               </div>
             )}
 
-            {/* ===== TAB 4: BACKLINK ===== */}
+            {/* ===== BACKLINK ===== */}
             {activeTab === 'backlink' && results.backlinks && (
               <div className="space-y-3">
                 <div className="text-sm text-gray-400 mb-2">DA 20-60 wali {results.backlinks.length} sites</div>
@@ -638,7 +527,7 @@ export default function Home() {
               </div>
             )}
 
-            {/* ===== TAB 5: TREND ===== */}
+            {/* ===== TREND ===== */}
             {activeTab === 'trend' && results.trend && (
               <div className="space-y-4">
                 <div className="bg-white/5 p-4 rounded-xl">
@@ -665,7 +554,7 @@ export default function Home() {
               </div>
             )}
 
-            {/* ===== TAB 6: ON-PAGE SEO ===== */}
+            {/* ===== ON-PAGE SEO ===== */}
             {activeTab === 'onpage' && results.checklist && (
               <div className="space-y-3">
                 {results.checklist.map((item, i) => (
@@ -695,7 +584,7 @@ export default function Home() {
               </div>
             )}
 
-            {/* ===== TAB 7: 90 DAY PLAN ===== */}
+            {/* ===== 90 DAY PLAN ===== */}
             {activeTab === 'plan' && results.plan && (
               <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
                 {results.plan.map((week, i) => (
@@ -719,7 +608,7 @@ export default function Home() {
               </div>
             )}
 
-            {/* ===== TAB 8: NICHE MEMORY ===== */}
+            {/* ===== NICHE MEMORY ===== */}
             {activeTab === 'niche' && results.niche && (
               <div className="space-y-4">
                 <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 p-4 rounded-xl border border-purple-500/20">
@@ -742,6 +631,34 @@ export default function Home() {
                 </div>
               </div>
             )}
+
+            {/* ===== RANK CHECKER ===== */}
+            {activeTab === 'rank' && results.rank && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-gradient-to-r from-green-500/10 to-purple-500/10 p-4 rounded-xl text-center border border-green-500/20">
+                    <div className="text-4xl font-bold text-cyan-300">#{results.rank.position || 'N/A'}</div>
+                    <div className="text-xs text-gray-400">Current Position</div>
+                  </div>
+                  <div className="bg-white/5 p-4 rounded-xl text-center">
+                    <div className="text-2xl font-bold text-yellow-300">{results.rank.total_keywords || 'N/A'}</div>
+                    <div className="text-xs text-gray-400">Total Keywords</div>
+                  </div>
+                  <div className="bg-white/5 p-4 rounded-xl text-center">
+                    <div className="text-2xl font-bold text-green-300">{results.rank.traffic || 'N/A'}</div>
+                    <div className="text-xs text-gray-400">Estimated Traffic</div>
+                  </div>
+                </div>
+                {results.rank.improvement && (
+                  <div className="bg-purple-500/10 p-4 rounded-xl border border-purple-500/20">
+                    <h4 className="font-bold text-purple-300 mb-2">🚀 Improvement Tips</h4>
+                    <ul className="list-disc pl-5 text-sm space-y-1 text-gray-300">
+                      {results.rank.improvement.map((tip, i) => <li key={i}>{tip}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -750,8 +667,7 @@ export default function Home() {
           <div className="text-center py-16 text-gray-500">
             <div className="text-6xl mb-4">⚡</div>
             <p className="text-xl font-semibold text-gray-300">Select a tab and enter your keyword</p>
-            <p className="text-sm text-gray-600 mt-2">8 Features • Fast • 90 Days to Top</p>
-            <p className="text-xs text-gray-600 mt-4">💡 Click "Demo" to see sample data</p>
+            <p className="text-sm text-gray-600 mt-2">9 Features • Real Data • 90 Days to Top</p>
           </div>
         )}
       </div>
