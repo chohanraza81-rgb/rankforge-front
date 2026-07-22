@@ -80,21 +80,21 @@ export default function Home() {
     setResults(null);
 
     try {
-      const baseUrl = '/api/v12';
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
       let endpoint = '';
       let payload = {};
 
       switch (activeTab) {
-        case 'keyword': endpoint = '/keyword-research'; payload = { keyword }; break;
-        case 'competitor': endpoint = '/competitor-gap'; payload = { keyword, domain }; break;
-        case 'outline': endpoint = '/content-outline'; payload = { keyword, niche: selectedNiche }; break;
-        case 'backlink': endpoint = '/backlink-opportunities'; payload = { keyword }; break;
-        case 'trend': endpoint = '/trend-tracker'; payload = { keyword }; break;
-        case 'onpage': endpoint = '/onpage-seo'; payload = { content }; break;
-        case 'plan': endpoint = '/action-plan'; payload = { keyword }; break;
-        case 'niche': endpoint = '/niche-memory'; payload = { niche: selectedNiche }; break;
-        case 'rank': endpoint = '/rank-checker'; payload = { domain }; break;
-        case 'brief': endpoint = '/content-brief'; payload = { keyword, niche: selectedNiche }; break;
+        case 'keyword': endpoint = '/v13/keyword-research'; payload = { keyword }; break;
+        case 'competitor': endpoint = '/v13/competitor-gap'; payload = { keyword, domain }; break;
+        case 'outline': endpoint = '/v13/content-outline'; payload = { keyword, niche: selectedNiche }; break;
+        case 'backlink': endpoint = '/v13/backlink-opportunities'; payload = { keyword }; break;
+        case 'trend': endpoint = '/v13/trend-tracker'; payload = { keyword }; break;
+        case 'onpage': endpoint = '/v13/onpage-seo'; payload = { content }; break;
+        case 'plan': endpoint = '/v13/action-plan'; payload = { keyword }; break;
+        case 'niche': endpoint = '/v13/niche-memory'; payload = { niche: selectedNiche }; break;
+        case 'rank': endpoint = '/v13/rank-checker'; payload = { domain }; break;
+        case 'brief': endpoint = '/v13/content-brief'; payload = { keyword, niche: selectedNiche }; break;
         default: throw new Error('Invalid tab');
       }
 
@@ -133,7 +133,7 @@ export default function Home() {
         <div className="text-center mb-6">
           <div className="flex items-center justify-center gap-3 mb-1">
             <h1 className="text-4xl font-extrabold bg-gradient-to-r from-cyan-400 to-purple-400 text-transparent bg-clip-text">
-              RankForge V12
+              RankForge V13
             </h1>
             <CrownIcon className="w-6 h-6 text-yellow-400" />
             <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded-full">REAL</span>
@@ -393,7 +393,7 @@ export default function Home() {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold text-green-400 flex items-center gap-2">
                 <CheckCircle size={18} /> Report Ready
-                <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded-full">V12 REAL</span>
+                <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded-full">V13 REAL</span>
               </h2>
               <button
                 onClick={() => copyToClipboard(JSON.stringify(results, null, 2))}
@@ -664,4 +664,64 @@ export default function Home() {
                     <div className="text-xl font-bold text-yellow-300">{results.rank.total_keywords}</div>
                     <div className="text-xs text-gray-400">Total Keywords</div>
                   </div>
-                  <div className
+                  <div className="bg-white/5 p-3 rounded-xl text-center">
+                    <div className="text-xl font-bold text-green-300">{results.rank.traffic}</div>
+                    <div className="text-xs text-gray-400">Estimated Traffic</div>
+                  </div>
+                </div>
+                <div className="bg-purple-500/10 p-3 rounded-xl border border-purple-500/20">
+                  <p className="font-bold text-purple-300 text-sm">🚀 Improvement Plan</p>
+                  <ul className="list-disc pl-4 text-xs mt-1 space-y-0.5 text-gray-300">
+                    {results.rank.improvement?.map((tip, i) => <li key={i}>{tip}</li>)}
+                  </ul>
+                </div>
+              </div>
+            )}
+
+            {/* ===== BRIEF RESULTS ===== */}
+            {activeTab === 'brief' && results.brief && (
+              <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                <div className="bg-purple-500/10 p-3 rounded-xl border border-purple-500/20">
+                  <h3 className="font-bold text-cyan-300 text-lg">{results.brief.title}</h3>
+                  <p className="text-xs text-gray-400 mt-1">{results.brief.description}</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="bg-white/5 p-3 rounded-xl">
+                    <p className="font-bold text-yellow-300 text-xs">📊 Content Specs</p>
+                    <div className="text-xs space-y-1 mt-1">
+                      <div>Words: {results.brief.word_count}</div>
+                      <div>Images: {results.brief.images}</div>
+                      <div>Audience: {results.brief.target_audience}</div>
+                      <div>Tone: {results.brief.tone}</div>
+                    </div>
+                  </div>
+                  <div className="bg-white/5 p-3 rounded-xl">
+                    <p className="font-bold text-purple-300 text-xs">📌 Key Headings</p>
+                    <ul className="list-disc pl-4 text-xs mt-1">
+                      {results.brief.key_headings?.map((h, i) => <li key={i}>{h}</li>)}
+                    </ul>
+                  </div>
+                </div>
+                <div className="bg-green-500/10 p-3 rounded-xl border border-green-500/20">
+                  <p className="font-bold text-green-300 text-xs">💡 SEO Tips</p>
+                  <ul className="list-disc pl-4 text-xs mt-1">
+                    {results.brief.seo_tips?.map((tip, i) => <li key={i}>{tip}</li>)}
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ===== EMPTY STATE ===== */}
+        {!loading && !results && !error && (
+          <div className="text-center py-16 text-gray-500">
+            <div className="text-5xl mb-3">⚡</div>
+            <p className="text-lg font-semibold text-gray-300">Enter keyword and click Generate</p>
+            <p className="text-xs text-gray-600 mt-1">10 Features • Real Data • 90 Days to Top</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
