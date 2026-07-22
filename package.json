@@ -1,6 +1,6 @@
 {
   "name": "rankforge-frontend",
-  "version": "4.0.0",
+  "version": "10.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -13,7 +13,9 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "framer-motion": "^10.16.0",
-    "lucide-react": "^0.294.0"
+    "lucide-react": "^0.294.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.1"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.16",
