@@ -4,8 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Loader2, CheckCircle, Target, TrendingUp, Zap, Sparkles, Crown,
   ArrowRight, Copy, Search, Users, FileText, Link, Calendar, 
-  ListChecks, Brain, Rocket, Crown as CrownIcon, BarChart3,
-  Globe, Hash, Layers, PenTool, Award
+  ListChecks, Brain, Rocket, Crown as CrownIcon
 } from 'lucide-react';
 
 export default function Home() {
@@ -29,7 +28,7 @@ export default function Home() {
     { id: 'plan', label: 'Plan', icon: <Target size={16} /> },
     { id: 'niche', label: 'Niche', icon: <Brain size={16} /> },
     { id: 'rank', label: 'Rank', icon: <Rocket size={16} /> },
-    { id: 'brief', label: 'Brief', icon: <PenTool size={16} /> },
+    { id: 'brief', label: 'Brief', icon: <FileText size={16} /> },
   ];
 
   const handleGenerate = async () => {
@@ -80,31 +79,29 @@ export default function Home() {
     setResults(null);
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-      if (!baseUrl) {
-        throw new Error('API URL not configured. Please check .env.local');
-      }
-
+      // ✅ DIRECT BACKEND API CALL - No frontend API route
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rankforge-backend-production.up.railway.app/api';
       let endpoint = '';
       let payload = {};
 
       switch (activeTab) {
-        case 'keyword': endpoint = '/v13/keyword-research'; payload = { keyword }; break;
-        case 'competitor': endpoint = '/v13/competitor-gap'; payload = { keyword, domain }; break;
-        case 'outline': endpoint = '/v13/content-outline'; payload = { keyword, niche: selectedNiche }; break;
-        case 'backlink': endpoint = '/v13/backlink-opportunities'; payload = { keyword }; break;
-        case 'trend': endpoint = '/v13/trend-tracker'; payload = { keyword }; break;
-        case 'onpage': endpoint = '/v13/onpage-seo'; payload = { content }; break;
-        case 'plan': endpoint = '/v13/action-plan'; payload = { keyword }; break;
-        case 'niche': endpoint = '/v13/niche-memory'; payload = { niche: selectedNiche }; break;
-        case 'rank': endpoint = '/v13/rank-checker'; payload = { domain }; break;
-        case 'brief': endpoint = '/v13/content-brief'; payload = { keyword, niche: selectedNiche }; break;
+        case 'keyword': endpoint = '/v14/keyword-research'; payload = { keyword }; break;
+        case 'competitor': endpoint = '/v14/competitor-gap'; payload = { keyword, domain }; break;
+        case 'outline': endpoint = '/v14/content-outline'; payload = { keyword, niche: selectedNiche }; break;
+        case 'backlink': endpoint = '/v14/backlink-opportunities'; payload = { keyword }; break;
+        case 'trend': endpoint = '/v14/trend-tracker'; payload = { keyword }; break;
+        case 'onpage': endpoint = '/v14/onpage-seo'; payload = { content }; break;
+        case 'plan': endpoint = '/v14/action-plan'; payload = { keyword }; break;
+        case 'niche': endpoint = '/v14/niche-memory'; payload = { niche: selectedNiche }; break;
+        case 'rank': endpoint = '/v14/rank-checker'; payload = { domain }; break;
+        case 'brief': endpoint = '/v14/content-brief'; payload = { keyword, niche: selectedNiche }; break;
         default: throw new Error('Invalid tab');
       }
 
-      console.log(`📡 Calling: ${baseUrl}${endpoint}`);
+      const url = `${baseUrl}${endpoint}`;
+      console.log(`📡 Calling: ${url}`);
 
-      const response = await fetch(`${baseUrl}${endpoint}`, {
+      const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -136,11 +133,11 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-slate-950 text-white p-4">
       <div className="max-w-7xl mx-auto">
-        {/* ===== HEADER ===== */}
+        {/* Header */}
         <div className="text-center mb-6">
           <div className="flex items-center justify-center gap-3 mb-1">
             <h1 className="text-4xl font-extrabold bg-gradient-to-r from-cyan-400 to-purple-400 text-transparent bg-clip-text">
-              RankForge V13
+              RankForge V14
             </h1>
             <CrownIcon className="w-6 h-6 text-yellow-400" />
             <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded-full">REAL</span>
@@ -148,7 +145,7 @@ export default function Home() {
           <p className="text-gray-400 text-sm">Real SEO Data • 90 Days to Top</p>
         </div>
 
-        {/* ===== 10 TABS ===== */}
+        {/* 10 Tabs */}
         <div className="grid grid-cols-5 md:grid-cols-10 gap-1.5 mb-6">
           {tabs.map((tab) => (
             <button
@@ -168,7 +165,7 @@ export default function Home() {
           ))}
         </div>
 
-        {/* ===== INPUT SECTION ===== */}
+        {/* Input Section */}
         <div className="bg-white/5 rounded-2xl border border-white/10 p-4 mb-6">
           <div className="space-y-3">
             {/* Keyword Input */}
@@ -387,20 +384,20 @@ export default function Home() {
           </div>
         </div>
 
-        {/* ===== ERROR ===== */}
+        {/* Error */}
         {error && (
           <div className="mb-4 p-4 bg-red-500/20 border border-red-500/50 rounded-2xl text-red-300 text-sm">
             ⚠️ {error}
           </div>
         )}
 
-        {/* ===== RESULTS ===== */}
+        {/* Results */}
         {results && (
           <div className="bg-white/5 rounded-2xl border border-white/10 p-5">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold text-green-400 flex items-center gap-2">
                 <CheckCircle size={18} /> Report Ready
-                <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded-full">V13 REAL</span>
+                <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded-full">V14 REAL</span>
               </h2>
               <button
                 onClick={() => copyToClipboard(JSON.stringify(results, null, 2))}
@@ -411,17 +408,14 @@ export default function Home() {
               </button>
             </div>
 
-            {/* ===== KEYWORD RESULTS ===== */}
+            {/* Keyword Results */}
             {activeTab === 'keyword' && results.keywords && (
               <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                 <div className="text-sm text-gray-400 mb-1">{results.keywords.length} real keywords found</div>
                 {results.keywords.map((kw, i) => (
                   <div key={i} className="p-3 rounded-xl border border-white/10 bg-white/5">
                     <div className="flex flex-wrap justify-between items-center gap-2">
-                      <div>
-                        <span className="font-medium text-cyan-300">{kw.keyword}</span>
-                        {kw.kd < 20 && <span className="ml-2 text-[10px] bg-green-500/20 text-green-300 px-1.5 py-0.5 rounded-full">⭐ Easy</span>}
-                      </div>
+                      <span className="font-medium text-cyan-300">{kw.keyword}</span>
                       <div className="flex flex-wrap gap-1.5 text-[10px]">
                         <span className="bg-white/10 px-2 py-0.5 rounded">Vol: {kw.volume}</span>
                         <span className="bg-white/10 px-2 py-0.5 rounded">KD: {kw.kd}</span>
@@ -451,7 +445,7 @@ export default function Home() {
               </div>
             )}
 
-            {/* ===== COMPETITOR RESULTS ===== */}
+            {/* Competitor Results */}
             {activeTab === 'competitor' && results.competitors && (
               <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                 <div className="text-sm text-gray-400 mb-1">{results.competitors.length} real competitors</div>
@@ -460,20 +454,9 @@ export default function Home() {
                     <div className="flex justify-between items-start">
                       <div>
                         <div className="font-bold text-cyan-300 text-sm">#{comp.rank} {comp.domain}</div>
-                        <div className="text-[10px] text-gray-400 mt-0.5">
-                          Words: {comp.word_count} • Backlinks: {comp.backlinks}
-                        </div>
+                        <div className="text-[10px] text-gray-400">Words: {comp.word_count} • Backlinks: {comp.backlinks}</div>
                         {comp.missing_headings?.length > 0 && (
-                          <div className="mt-1.5 text-[10px]">
-                            <span className="text-yellow-300">📌 Missing Headings:</span>
-                            <span className="text-gray-400 ml-1">{comp.missing_headings.join(', ')}</span>
-                          </div>
-                        )}
-                        {comp.missing_faq?.length > 0 && (
-                          <div className="text-[10px]">
-                            <span className="text-yellow-300">❓ Missing FAQ:</span>
-                            <span className="text-gray-400 ml-1">{comp.missing_faq.join(', ')}</span>
-                          </div>
+                          <div className="text-[10px] text-yellow-300 mt-1">📌 {comp.missing_headings.join(', ')}</div>
                         )}
                       </div>
                       {comp.authority && <span className="text-[10px] bg-purple-500/20 px-2 py-0.5 rounded">DA: {comp.authority}</span>}
@@ -491,76 +474,59 @@ export default function Home() {
               </div>
             )}
 
-            {/* ===== OUTLINE RESULTS ===== */}
+            {/* Outline Results */}
             {activeTab === 'outline' && results.outline && (
               <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                 <div className="bg-purple-500/10 p-3 rounded-xl border border-purple-500/20">
-                  <h3 className="font-bold text-cyan-300 text-lg">{results.outline.h1}</h3>
+                  <h3 className="font-bold text-cyan-300">{results.outline.h1}</h3>
                   <div className="text-xs text-gray-400 mt-1">📌 Meta Title: {results.outline.meta_title}</div>
-                  <div className="text-xs text-gray-400">📝 Meta Description: {results.outline.meta_description}</div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="bg-white/5 p-3 rounded-xl">
                     <p className="font-bold text-yellow-300 text-xs">📌 H2 Headings</p>
-                    <ul className="mt-1 space-y-0.5 text-xs max-h-40 overflow-y-auto">
-                      {results.outline.h2_headings?.map((h, i) => <li key={i} className="flex items-start gap-1.5"><span className="text-cyan-400">{i+1}.</span><span className="text-gray-300">{h}</span></li>)}
+                    <ul className="mt-1 space-y-0.5 text-xs">
+                      {results.outline.h2_headings?.slice(0, 5).map((h, i) => <li key={i}>{i+1}. {h}</li>)}
                     </ul>
                   </div>
-                  <div className="space-y-3">
-                    <div className="bg-white/5 p-3 rounded-xl">
-                      <p className="font-bold text-yellow-300 text-xs">❓ FAQ</p>
-                      <ul className="list-disc pl-4 text-xs space-y-0.5 text-gray-300 max-h-24 overflow-y-auto">
-                        {results.outline.faq?.map((f, i) => <li key={i}>{f}</li>)}
-                      </ul>
-                    </div>
-                    <div className="bg-white/5 p-3 rounded-xl">
-                      <p className="font-bold text-green-300 text-xs">🔑 LSI Keywords</p>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {results.outline.lsi_keywords?.map((l, i) => <span key={i} className="text-[9px] bg-green-500/20 px-1.5 py-0.5 rounded-full border border-green-500/20">{l}</span>)}
-                      </div>
-                    </div>
+                  <div className="bg-white/5 p-3 rounded-xl">
+                    <p className="font-bold text-yellow-300 text-xs">❓ FAQ</p>
+                    <ul className="list-disc pl-4 text-xs space-y-0.5 text-gray-300 max-h-24 overflow-y-auto">
+                      {results.outline.faq?.slice(0, 5).map((f, i) => <li key={i}>{f}</li>)}
+                    </ul>
                   </div>
                 </div>
                 {results.outline.local_angle && (
-                  <div className="bg-green-500/10 p-2.5 rounded-xl border border-green-500/20 text-xs">
+                  <div className="bg-green-500/10 p-2 rounded-xl border border-green-500/20 text-xs">
                     🌍 {results.outline.local_angle}
                   </div>
                 )}
               </div>
             )}
 
-            {/* ===== BACKLINK RESULTS ===== */}
+            {/* Backlink Results */}
             {activeTab === 'backlink' && results.backlinks && (
               <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
                 <div className="text-sm text-gray-400 mb-1">{results.backlinks.length} real backlink opportunities</div>
                 {results.backlinks.map((b, i) => (
-                  <div key={i} className="p-2.5 rounded-xl border border-white/10 bg-white/5 flex flex-wrap justify-between items-center gap-1.5">
-                    <div className="flex-1">
-                      <div className="font-medium text-cyan-300 text-sm flex items-center gap-1.5">
-                        {b.domain}
-                        <span className="text-[10px] bg-purple-500/20 px-1.5 py-0.5 rounded-full">DA: {b.da}</span>
-                      </div>
+                  <div key={i} className="p-2.5 rounded-xl border border-white/10 bg-white/5 flex justify-between items-center">
+                    <div>
+                      <div className="font-medium text-cyan-300 text-sm">{b.domain}</div>
                       <div className="text-[10px] text-gray-400">{b.link_type} • {b.reason}</div>
                     </div>
                     <div className="text-right">
+                      <div className="text-[10px] bg-purple-500/20 px-2 py-0.5 rounded">DA: {b.da}</div>
                       <div className="text-[10px] text-gray-400">{b.email}</div>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                        b.opportunity === 'High' ? 'bg-green-500/20 text-green-300' :
-                        b.opportunity === 'Medium' ? 'bg-yellow-500/20 text-yellow-300' :
-                        'bg-gray-500/20 text-gray-300'
-                      }`}>{b.opportunity || 'Medium'}</span>
                     </div>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* ===== TREND RESULTS ===== */}
+            {/* Trend Results */}
             {activeTab === 'trend' && results.trend && (
               <div className="space-y-3">
                 <div className="bg-white/5 p-4 rounded-xl">
-                  <p className="text-gray-400 text-xs">📈 12 Month Trend</p>
-                  <div className="flex items-end gap-1 h-24 mt-2">
+                  <div className="flex items-end gap-1 h-24">
                     {results.trend.map((t, i) => (
                       <div key={i} className="flex-1 flex flex-col items-center">
                         <div className="w-full bg-gradient-to-t from-purple-500 to-cyan-400 rounded-t" style={{ height: `${(t.value/100)*90}%` }} />
@@ -575,24 +541,22 @@ export default function Home() {
                     <div className="text-[10px] text-gray-400">Peak Month</div>
                   </div>
                   <div className="bg-white/5 p-3 rounded-xl text-center">
-                    <div className="text-lg font-bold text-cyan-300">{results.peak_value}</div>
+                    <div className="text-sm text-cyan-300">{results.peak_value}</div>
                     <div className="text-[10px] text-gray-400">Peak Value</div>
                   </div>
                   <div className="bg-white/5 p-3 rounded-xl text-center">
-                    <div className="text-sm font-bold text-green-300">{results.best_publish_date}</div>
+                    <div className="text-sm text-green-300">{results.best_publish_date}</div>
                     <div className="text-[10px] text-gray-400">Publish Date</div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* ===== ON-PAGE RESULTS ===== */}
+            {/* On-Page Results */}
             {activeTab === 'onpage' && results.checklist && (
               <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
                 {results.checklist.map((item, i) => (
-                  <div key={i} className={`p-2.5 rounded-xl border flex flex-wrap justify-between items-center gap-1.5 ${
-                    item.status === 'pass' ? 'border-green-500/30 bg-green-500/10' : 'border-red-500/30 bg-red-500/10'
-                  }`}>
+                  <div key={i} className={`p-2.5 rounded-xl border flex justify-between items-center ${item.status === 'pass' ? 'border-green-500/30 bg-green-500/10' : 'border-red-500/30 bg-red-500/10'}`}>
                     <div className="flex items-center gap-2">
                       {item.status === 'pass' ? '✅' : '❌'}
                       <div>
@@ -600,32 +564,26 @@ export default function Home() {
                         <div className="text-[10px] text-gray-400">{item.issue || '✅ All good'}</div>
                       </div>
                     </div>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                      item.status === 'pass' ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'
-                    }`}>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${item.status === 'pass' ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
                       {item.status === 'pass' ? 'Pass' : 'Fix'}
                     </span>
                   </div>
                 ))}
                 <div className="bg-gradient-to-r from-green-500/10 to-purple-500/10 p-3 rounded-xl text-center border border-green-500/20">
                   <div className="text-2xl font-bold text-cyan-300">{results.score}/12</div>
-                  <div className="text-xs text-gray-400">Score • Grade: <span className="text-yellow-300 font-bold">{results.grade}</span></div>
+                  <div className="text-xs text-gray-400">Score • Grade: {results.grade}</div>
                 </div>
               </div>
             )}
 
-            {/* ===== PLAN RESULTS ===== */}
+            {/* Plan Results */}
             {activeTab === 'plan' && results.plan && (
               <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
                 {results.plan.map((week, i) => (
                   <div key={i} className="p-3 rounded-xl border border-white/10 bg-white/5">
                     <div className="flex justify-between items-center">
                       <h3 className="font-bold text-cyan-300 text-sm">Week {week.week} • {week.focus}</h3>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                        week.priority === 'High' ? 'bg-red-500/20 text-red-300' :
-                        week.priority === 'Medium' ? 'bg-yellow-500/20 text-yellow-300' :
-                        'bg-green-500/20 text-green-300'
-                      }`}>{week.priority}</span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${week.priority === 'High' ? 'bg-red-500/20 text-red-300' : 'bg-yellow-500/20 text-yellow-300'}`}>{week.priority}</span>
                     </div>
                     <ul className="list-disc pl-4 text-xs text-gray-300 mt-1 space-y-0.5">
                       {week.tasks?.map((task, j) => <li key={j}>{task}</li>)}
@@ -635,22 +593,22 @@ export default function Home() {
               </div>
             )}
 
-            {/* ===== NICHE RESULTS ===== */}
+            {/* Niche Results */}
             {activeTab === 'niche' && results.niche && (
               <div className="space-y-3">
                 <div className="bg-purple-500/10 p-3 rounded-xl border border-purple-500/20">
-                  <h3 className="font-bold text-cyan-300 text-xl">{results.niche.name}</h3>
+                  <h3 className="font-bold text-cyan-300">{results.niche.name}</h3>
                   <p className="text-xs text-gray-400 mt-1">{results.niche.description}</p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="bg-white/5 p-3 rounded-xl">
-                    <p className="font-bold text-yellow-300 text-sm">🏆 Top Competitors</p>
-                    <ul className="list-disc pl-4 text-sm mt-1 space-y-0.5">
+                    <p className="font-bold text-yellow-300 text-sm">🏆 Competitors</p>
+                    <ul className="list-disc pl-4 text-sm mt-1">
                       {results.niche.competitors?.map((c, i) => <li key={i}>{c}</li>)}
                     </ul>
                   </div>
                   <div className="bg-white/5 p-3 rounded-xl">
-                    <p className="font-bold text-purple-300 text-sm">💡 Key Insights</p>
+                    <p className="font-bold text-purple-300 text-sm">💡 Insights</p>
                     <ul className="list-disc pl-4 text-xs space-y-0.5 text-gray-300 mt-1">
                       {results.niche.insights?.map((ins, i) => <li key={i}>{ins}</li>)}
                     </ul>
@@ -659,21 +617,21 @@ export default function Home() {
               </div>
             )}
 
-            {/* ===== RANK RESULTS ===== */}
+            {/* Rank Results */}
             {activeTab === 'rank' && results.rank && (
               <div className="space-y-3">
                 <div className="grid grid-cols-3 gap-3">
                   <div className="bg-gradient-to-r from-green-500/10 to-purple-500/10 p-4 rounded-xl text-center border border-green-500/20">
                     <div className="text-3xl font-bold text-cyan-300">#{results.rank.position}</div>
-                    <div className="text-xs text-gray-400">Current Position</div>
+                    <div className="text-xs text-gray-400">Position</div>
                   </div>
                   <div className="bg-white/5 p-3 rounded-xl text-center">
                     <div className="text-xl font-bold text-yellow-300">{results.rank.total_keywords}</div>
-                    <div className="text-xs text-gray-400">Total Keywords</div>
+                    <div className="text-xs text-gray-400">Keywords</div>
                   </div>
                   <div className="bg-white/5 p-3 rounded-xl text-center">
                     <div className="text-xl font-bold text-green-300">{results.rank.traffic}</div>
-                    <div className="text-xs text-gray-400">Estimated Traffic</div>
+                    <div className="text-xs text-gray-400">Traffic</div>
                   </div>
                 </div>
                 <div className="bg-purple-500/10 p-3 rounded-xl border border-purple-500/20">
@@ -685,16 +643,16 @@ export default function Home() {
               </div>
             )}
 
-            {/* ===== BRIEF RESULTS ===== */}
+            {/* Brief Results */}
             {activeTab === 'brief' && results.brief && (
               <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                 <div className="bg-purple-500/10 p-3 rounded-xl border border-purple-500/20">
-                  <h3 className="font-bold text-cyan-300 text-lg">{results.brief.title}</h3>
+                  <h3 className="font-bold text-cyan-300">{results.brief.title}</h3>
                   <p className="text-xs text-gray-400 mt-1">{results.brief.description}</p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="bg-white/5 p-3 rounded-xl">
-                    <p className="font-bold text-yellow-300 text-xs">📊 Content Specs</p>
+                    <p className="font-bold text-yellow-300 text-xs">📊 Specs</p>
                     <div className="text-xs space-y-1 mt-1">
                       <div>Words: {results.brief.word_count}</div>
                       <div>Images: {results.brief.images}</div>
@@ -703,7 +661,7 @@ export default function Home() {
                     </div>
                   </div>
                   <div className="bg-white/5 p-3 rounded-xl">
-                    <p className="font-bold text-purple-300 text-xs">📌 Key Headings</p>
+                    <p className="font-bold text-purple-300 text-xs">📌 Headings</p>
                     <ul className="list-disc pl-4 text-xs mt-1">
                       {results.brief.key_headings?.map((h, i) => <li key={i}>{h}</li>)}
                     </ul>
@@ -720,7 +678,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* ===== EMPTY STATE ===== */}
+        {/* Empty State */}
         {!loading && !results && !error && (
           <div className="text-center py-16 text-gray-500">
             <div className="text-5xl mb-3">⚡</div>
