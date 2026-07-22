@@ -80,7 +80,11 @@ export default function Home() {
     setResults(null);
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || '/api';
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+      if (!baseUrl) {
+        throw new Error('API URL not configured. Please check .env.local');
+      }
+
       let endpoint = '';
       let payload = {};
 
@@ -98,6 +102,8 @@ export default function Home() {
         default: throw new Error('Invalid tab');
       }
 
+      console.log(`📡 Calling: ${baseUrl}${endpoint}`);
+
       const response = await fetch(`${baseUrl}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -110,6 +116,7 @@ export default function Home() {
       }
 
       const data = await response.json();
+      console.log('✅ Data received:', data);
       setResults(data);
 
     } catch (err) {
