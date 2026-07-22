@@ -1,6 +1,5 @@
 'use client';
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Loader2, CheckCircle, Target, TrendingUp, Zap, Sparkles, Crown,
   ArrowRight, Copy, Search, Users, FileText, Link, Calendar, 
@@ -32,7 +31,6 @@ export default function Home() {
   ];
 
   const handleGenerate = async () => {
-    // Validation
     if (activeTab === 'keyword' && !keyword.trim()) {
       setError('Please enter a keyword.');
       return;
@@ -79,22 +77,21 @@ export default function Home() {
     setResults(null);
 
     try {
-      // ✅ DIRECT BACKEND API CALL - No frontend API route
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://rankforge-backend-production.up.railway.app/api';
       let endpoint = '';
       let payload = {};
 
       switch (activeTab) {
-        case 'keyword': endpoint = '/v14/keyword-research'; payload = { keyword }; break;
-        case 'competitor': endpoint = '/v14/competitor-gap'; payload = { keyword, domain }; break;
-        case 'outline': endpoint = '/v14/content-outline'; payload = { keyword, niche: selectedNiche }; break;
-        case 'backlink': endpoint = '/v14/backlink-opportunities'; payload = { keyword }; break;
-        case 'trend': endpoint = '/v14/trend-tracker'; payload = { keyword }; break;
-        case 'onpage': endpoint = '/v14/onpage-seo'; payload = { content }; break;
-        case 'plan': endpoint = '/v14/action-plan'; payload = { keyword }; break;
-        case 'niche': endpoint = '/v14/niche-memory'; payload = { niche: selectedNiche }; break;
-        case 'rank': endpoint = '/v14/rank-checker'; payload = { domain }; break;
-        case 'brief': endpoint = '/v14/content-brief'; payload = { keyword, niche: selectedNiche }; break;
+        case 'keyword': endpoint = '/v15/keyword-research'; payload = { keyword }; break;
+        case 'competitor': endpoint = '/v15/competitor-gap'; payload = { keyword, domain }; break;
+        case 'outline': endpoint = '/v15/content-outline'; payload = { keyword, niche: selectedNiche }; break;
+        case 'backlink': endpoint = '/v15/backlink-opportunities'; payload = { keyword }; break;
+        case 'trend': endpoint = '/v15/trend-tracker'; payload = { keyword }; break;
+        case 'onpage': endpoint = '/v15/onpage-seo'; payload = { content }; break;
+        case 'plan': endpoint = '/v15/action-plan'; payload = { keyword }; break;
+        case 'niche': endpoint = '/v15/niche-memory'; payload = { niche: selectedNiche }; break;
+        case 'rank': endpoint = '/v15/rank-checker'; payload = { domain }; break;
+        case 'brief': endpoint = '/v15/content-brief'; payload = { keyword, niche: selectedNiche }; break;
         default: throw new Error('Invalid tab');
       }
 
@@ -113,7 +110,6 @@ export default function Home() {
       }
 
       const data = await response.json();
-      console.log('✅ Data received:', data);
       setResults(data);
 
     } catch (err) {
@@ -137,10 +133,10 @@ export default function Home() {
         <div className="text-center mb-6">
           <div className="flex items-center justify-center gap-3 mb-1">
             <h1 className="text-4xl font-extrabold bg-gradient-to-r from-cyan-400 to-purple-400 text-transparent bg-clip-text">
-              RankForge V14
+              RankForge V15
             </h1>
             <CrownIcon className="w-6 h-6 text-yellow-400" />
-            <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded-full">REAL</span>
+            <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded-full">FINAL</span>
           </div>
           <p className="text-gray-400 text-sm">Real SEO Data • 90 Days to Top</p>
         </div>
@@ -397,7 +393,7 @@ export default function Home() {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-semibold text-green-400 flex items-center gap-2">
                 <CheckCircle size={18} /> Report Ready
-                <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded-full">V14 REAL</span>
+                <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded-full">V15 FINAL</span>
               </h2>
               <button
                 onClick={() => copyToClipboard(JSON.stringify(results, null, 2))}
