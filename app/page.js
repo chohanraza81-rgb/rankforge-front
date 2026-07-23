@@ -31,7 +31,6 @@ export default function Home() {
   ];
 
   const handleGenerate = async () => {
-    // Validation
     if (activeTab === 'keyword' && !keyword.trim()) {
       setError('Please enter a keyword.');
       return;
@@ -96,8 +95,6 @@ export default function Home() {
         default: throw new Error('Invalid tab');
       }
 
-      console.log(`📡 Calling: ${baseUrl}${endpoint}`);
-
       const response = await fetch(`${baseUrl}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -129,7 +126,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-slate-950 text-white p-4">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="text-center mb-6">
           <div className="flex items-center justify-center gap-3 mb-1">
             <h1 className="text-4xl font-extrabold bg-gradient-to-r from-cyan-400 to-purple-400 text-transparent bg-clip-text">
@@ -141,7 +137,6 @@ export default function Home() {
           <p className="text-gray-400 text-sm">Real SEO Data • 90 Days to Top</p>
         </div>
 
-        {/* 10 Tabs */}
         <div className="grid grid-cols-5 md:grid-cols-10 gap-1.5 mb-6">
           {tabs.map((tab) => (
             <button
@@ -161,10 +156,8 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Input Section */}
         <div className="bg-white/5 rounded-2xl border border-white/10 p-4 mb-6">
           <div className="space-y-3">
-            {/* Keyword Input */}
             {activeTab === 'keyword' && (
               <div>
                 <label className="text-sm text-gray-400 block mb-1">🎯 Enter Keyword</label>
@@ -172,7 +165,7 @@ export default function Home() {
                   type="text"
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
-                  placeholder='e.g., "best smartphones"'
+                  placeholder='e.g., "best smartphones in Japan"'
                   className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
                   onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
                 />
@@ -180,214 +173,103 @@ export default function Home() {
               </div>
             )}
 
-            {/* Competitor Input */}
             {activeTab === 'competitor' && (
-              <div>
-                <label className="text-sm text-gray-400 block mb-1">⚔️ Competitor Analysis</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    value={keyword}
-                    onChange={(e) => setKeyword(e.target.value)}
-                    placeholder='Keyword'
-                    className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
-                  />
-                  <input
-                    type="text"
-                    value={domain}
-                    onChange={(e) => setDomain(e.target.value)}
-                    placeholder='Your Domain'
-                    className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
-                  />
-                </div>
+              <div className="grid grid-cols-2 gap-3">
+                <input type="text" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder='Keyword' className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500" />
+                <input type="text" value={domain} onChange={(e) => setDomain(e.target.value)} placeholder='Your Domain' className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500" />
               </div>
             )}
 
-            {/* Outline Input */}
             {activeTab === 'outline' && (
-              <div>
-                <label className="text-sm text-gray-400 block mb-1">📝 Content Outline</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    value={keyword}
-                    onChange={(e) => setKeyword(e.target.value)}
-                    placeholder='Keyword'
-                    className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
-                  />
-                  <select
-                    value={selectedNiche}
-                    onChange={(e) => setSelectedNiche(e.target.value)}
-                    className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white"
-                  >
-                    <option value="">Local Angle</option>
-                    <option value="Pakistan">🇵🇰 Pakistan</option>
-                    <option value="UAE">🇦🇪 UAE</option>
-                    <option value="India">🇮🇳 India</option>
-                    <option value="USA">🇺🇸 USA</option>
-                    <option value="UK">🇬🇧 UK</option>
-                  </select>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">10 H2 headings, 10 FAQ, 30 LSI keywords</p>
+              <div className="grid grid-cols-2 gap-3">
+                <input type="text" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder='Keyword' className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500" />
+                <select value={selectedNiche} onChange={(e) => setSelectedNiche(e.target.value)} className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white">
+                  <option value="">Local Angle</option>
+                  <option value="Pakistan">🇵🇰 Pakistan</option>
+                  <option value="UAE">🇦🇪 UAE</option>
+                  <option value="Japan">🇯🇵 Japan</option>
+                  <option value="USA">🇺🇸 USA</option>
+                  <option value="UK">🇬🇧 UK</option>
+                </select>
               </div>
             )}
 
-            {/* Backlink Input */}
             {activeTab === 'backlink' && (
               <div>
                 <label className="text-sm text-gray-400 block mb-1">🔗 Backlink Opportunities</label>
-                <input
-                  type="text"
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                  placeholder='Enter keyword or niche'
-                  className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
-                  onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
-                />
+                <input type="text" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder='Enter keyword' className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500" onKeyDown={(e) => e.key === 'Enter' && handleGenerate()} />
                 <p className="text-xs text-gray-500 mt-1">Real domains with DA, email, and link types</p>
               </div>
             )}
 
-            {/* Trend Input */}
             {activeTab === 'trend' && (
               <div>
                 <label className="text-sm text-gray-400 block mb-1">📈 Trend Tracker</label>
-                <input
-                  type="text"
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                  placeholder='Enter keyword'
-                  className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
-                  onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
-                />
-                <p className="text-xs text-gray-500 mt-1">12 month trend + peak month + best publish date</p>
+                <input type="text" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder='Enter keyword' className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500" onKeyDown={(e) => e.key === 'Enter' && handleGenerate()} />
               </div>
             )}
 
-            {/* On-Page Input */}
             {activeTab === 'onpage' && (
               <div>
-                <label className="text-sm text-gray-400 block mb-1">✅ On-Page SEO Checklist</label>
-                <textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder='Paste your content here...'
-                  rows="4"
-                  className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500 resize-none"
-                />
-                <p className="text-xs text-gray-500 mt-1">12 point checklist + grade (A, B, C, D)</p>
+                <label className="text-sm text-gray-400 block mb-1">✅ On-Page SEO</label>
+                <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder='Paste your content here...' rows="4" className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500 resize-none" />
               </div>
             )}
 
-            {/* Plan Input */}
             {activeTab === 'plan' && (
               <div>
                 <label className="text-sm text-gray-400 block mb-1">🗓️ 90 Day Plan</label>
-                <input
-                  type="text"
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                  placeholder='Enter keyword'
-                  className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
-                  onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
-                />
-                <p className="text-xs text-gray-500 mt-1">12 weeks with exact tasks</p>
+                <input type="text" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder='Enter keyword' className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500" onKeyDown={(e) => e.key === 'Enter' && handleGenerate()} />
               </div>
             )}
 
-            {/* Niche Input */}
             {activeTab === 'niche' && (
               <div>
                 <label className="text-sm text-gray-400 block mb-1">🧠 Niche Intelligence</label>
-                <select
-                  value={selectedNiche}
-                  onChange={(e) => setSelectedNiche(e.target.value)}
-                  className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white"
-                >
-                  <option value="">Select a niche</option>
+                <select value={selectedNiche} onChange={(e) => setSelectedNiche(e.target.value)} className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white">
+                  <option value="">Select Niche</option>
                   <option value="Pakistan Mobile">🇵🇰 Pakistan Mobile</option>
                   <option value="AI Tools">🤖 AI Tools</option>
                   <option value="UAE Cargo">🇦🇪 UAE Cargo</option>
-                  <option value="Tech Reviews">💻 Tech Reviews</option>
-                  <option value="E-commerce">🛒 E-commerce</option>
-                  <option value="Health & Fitness">💪 Health & Fitness</option>
-                  <option value="Real Estate">🏠 Real Estate</option>
-                  <option value="Travel">✈️ Travel</option>
-                  <option value="Food & Cooking">🍳 Food & Cooking</option>
-                  <option value="Education">📚 Education</option>
                 </select>
-                <p className="text-xs text-gray-500 mt-1">Real competitors + 6 insights</p>
               </div>
             )}
 
-            {/* Rank Input */}
             {activeTab === 'rank' && (
               <div>
                 <label className="text-sm text-gray-400 block mb-1">🏆 Rank Checker</label>
-                <input
-                  type="text"
-                  value={domain}
-                  onChange={(e) => setDomain(e.target.value)}
-                  placeholder='Enter domain (e.g., "mywebsite.com")'
-                  className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
-                  onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
-                />
-                <p className="text-xs text-gray-500 mt-1">Current position + improvement plan</p>
+                <input type="text" value={domain} onChange={(e) => setDomain(e.target.value)} placeholder='Enter domain' className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500" onKeyDown={(e) => e.key === 'Enter' && handleGenerate()} />
               </div>
             )}
 
-            {/* Brief Input */}
             {activeTab === 'brief' && (
-              <div>
-                <label className="text-sm text-gray-400 block mb-1">📄 Content Brief</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    value={keyword}
-                    onChange={(e) => setKeyword(e.target.value)}
-                    placeholder='Keyword'
-                    className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500"
-                  />
-                  <select
-                    value={selectedNiche}
-                    onChange={(e) => setSelectedNiche(e.target.value)}
-                    className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white"
-                  >
-                    <option value="">Local Angle</option>
-                    <option value="Pakistan">🇵🇰 Pakistan</option>
-                    <option value="UAE">🇦🇪 UAE</option>
-                    <option value="India">🇮🇳 India</option>
-                    <option value="USA">🇺🇸 USA</option>
-                    <option value="UK">🇬🇧 UK</option>
-                  </select>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Complete content brief with specs and SEO tips</p>
+              <div className="grid grid-cols-2 gap-3">
+                <input type="text" value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder='Keyword' className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white placeholder-gray-500" />
+                <select value={selectedNiche} onChange={(e) => setSelectedNiche(e.target.value)} className="w-full p-3 rounded-xl bg-white/10 border border-white/20 focus:ring-2 focus:ring-purple-500 outline-none text-white">
+                  <option value="">Local Angle</option>
+                  <option value="Pakistan">🇵🇰 Pakistan</option>
+                  <option value="UAE">🇦🇪 UAE</option>
+                  <option value="Japan">🇯🇵 Japan</option>
+                </select>
               </div>
             )}
 
-            {/* Generate Button */}
             <button
               onClick={handleGenerate}
               disabled={loading}
               className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-[1.02] transition rounded-xl font-bold shadow-lg shadow-purple-500/30 disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {loading ? (
-                <><Loader2 className="animate-spin h-5 w-5" /> Generating Real Data...</>
-              ) : (
-                <><Sparkles size={18} /> Generate</>
-              )}
+              {loading ? <><Loader2 className="animate-spin h-5 w-5" /> Generating...</> : <><Sparkles size={18} /> Generate</>}
             </button>
           </div>
         </div>
 
-        {/* Error */}
         {error && (
           <div className="mb-4 p-4 bg-red-500/20 border border-red-500/50 rounded-2xl text-red-300 text-sm">
             ⚠️ {error}
           </div>
         )}
 
-        {/* Results */}
         {results && (
           <div className="bg-white/5 rounded-2xl border border-white/10 p-5">
             <div className="flex justify-between items-center mb-4">
@@ -395,16 +277,12 @@ export default function Home() {
                 <CheckCircle size={18} /> Report Ready
                 <span className="text-xs bg-green-500/20 text-green-300 px-2 py-0.5 rounded-full">V15 FINAL</span>
               </h2>
-              <button
-                onClick={() => copyToClipboard(JSON.stringify(results, null, 2))}
-                className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs flex items-center gap-1.5 transition"
-              >
+              <button onClick={() => copyToClipboard(JSON.stringify(results, null, 2))} className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs flex items-center gap-1.5 transition">
                 {copied ? <CheckCircle size={14} className="text-green-400"/> : <Copy size={14} />}
                 {copied ? 'Copied!' : 'Copy'}
               </button>
             </div>
 
-            {/* Keyword Results */}
             {activeTab === 'keyword' && results.keywords && (
               <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                 <div className="text-sm text-gray-400 mb-1">{results.keywords.length} real keywords found</div>
@@ -441,71 +319,9 @@ export default function Home() {
               </div>
             )}
 
-            {/* Competitor Results */}
-            {activeTab === 'competitor' && results.competitors && (
-              <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-                <div className="text-sm text-gray-400 mb-1">{results.competitors.length} real competitors</div>
-                {results.competitors.map((comp, i) => (
-                  <div key={i} className="p-3 rounded-xl border border-white/10 bg-white/5">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-bold text-cyan-300 text-sm">#{comp.rank} {comp.domain}</div>
-                        <div className="text-[10px] text-gray-400">Words: {comp.word_count} • Backlinks: {comp.backlinks}</div>
-                        {comp.missing_headings?.length > 0 && (
-                          <div className="text-[10px] text-yellow-300 mt-1">📌 {comp.missing_headings.join(', ')}</div>
-                        )}
-                      </div>
-                      {comp.authority && <span className="text-[10px] bg-purple-500/20 px-2 py-0.5 rounded">DA: {comp.authority}</span>}
-                    </div>
-                  </div>
-                ))}
-                {results.actions && (
-                  <div className="bg-purple-500/10 p-3 rounded-xl border border-purple-500/20">
-                    <p className="font-bold text-purple-300 text-sm">🎯 Action Steps</p>
-                    <ul className="mt-1 space-y-0.5">
-                      {results.actions.map((a, i) => <li key={i} className="text-xs flex items-start gap-1.5"><ArrowRight size={12} className="text-purple-400 mt-0.5 flex-shrink-0" />{a}</li>)}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Outline Results */}
-            {activeTab === 'outline' && results.outline && (
-              <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-                <div className="bg-purple-500/10 p-3 rounded-xl border border-purple-500/20">
-                  <h3 className="font-bold text-cyan-300">{results.outline.h1}</h3>
-                  <div className="text-xs text-gray-400 mt-1">📌 Meta Title: {results.outline.meta_title}</div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-white/5 p-3 rounded-xl">
-                    <p className="font-bold text-yellow-300 text-xs">📌 H2 Headings</p>
-                    <ul className="mt-1 space-y-0.5 text-xs">
-                      {results.outline.h2_headings?.slice(0, 5).map((h, i) => <li key={i}>{i+1}. {h}</li>)}
-                    </ul>
-                  </div>
-                  <div className="bg-white/5 p-3 rounded-xl">
-                    <p className="font-bold text-yellow-300 text-xs">❓ FAQ</p>
-                    <ul className="list-disc pl-4 text-xs space-y-0.5 text-gray-300 max-h-24 overflow-y-auto">
-                      {results.outline.faq?.slice(0, 5).map((f, i) => <li key={i}>{f}</li>)}
-                    </ul>
-                  </div>
-                </div>
-                {results.outline.local_angle && (
-                  <div className="bg-green-500/10 p-2 rounded-xl border border-green-500/20 text-xs">
-                    🌍 {results.outline.local_angle}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Backlink Results - REAL DATA */}
             {activeTab === 'backlink' && results.backlinks && (
               <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
-                <div className="text-sm text-gray-400 mb-1">
-                  {results.backlinks.length} real backlink opportunities
-                  {results.source && <span className="text-xs text-cyan-400 ml-2">({results.source})</span>}
-                </div>
+                <div className="text-sm text-gray-400 mb-1">{results.backlinks.length} real backlink opportunities</div>
                 {results.backlinks.map((b, i) => (
                   <div key={i} className="p-2.5 rounded-xl border border-white/10 bg-white/5 flex flex-wrap justify-between items-center gap-1.5">
                     <div className="flex-1">
@@ -528,7 +344,55 @@ export default function Home() {
               </div>
             )}
 
-            {/* Trend Results */}
+            {activeTab === 'competitor' && results.competitors && (
+              <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                {results.competitors.map((comp, i) => (
+                  <div key={i} className="p-3 rounded-xl border border-white/10 bg-white/5">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-bold text-cyan-300 text-sm">#{comp.rank} {comp.domain}</div>
+                        <div className="text-[10px] text-gray-400">Words: {comp.word_count} • Backlinks: {comp.backlinks}</div>
+                        {comp.missing_headings?.length > 0 && <div className="text-[10px] text-yellow-300 mt-1">📌 {comp.missing_headings.join(', ')}</div>}
+                      </div>
+                      {comp.authority && <span className="text-[10px] bg-purple-500/20 px-2 py-0.5 rounded">DA: {comp.authority}</span>}
+                    </div>
+                  </div>
+                ))}
+                {results.actions && (
+                  <div className="bg-purple-500/10 p-3 rounded-xl border border-purple-500/20">
+                    <p className="font-bold text-purple-300 text-sm">🎯 Action Steps</p>
+                    <ul className="mt-1 space-y-0.5">
+                      {results.actions.map((a, i) => <li key={i} className="text-xs flex items-start gap-1.5"><ArrowRight size={12} className="text-purple-400 mt-0.5 flex-shrink-0" />{a}</li>)}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'outline' && results.outline && (
+              <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                <div className="bg-purple-500/10 p-3 rounded-xl border border-purple-500/20">
+                  <h3 className="font-bold text-cyan-300">{results.outline.h1}</h3>
+                  <div className="text-xs text-gray-400 mt-1">📌 Meta Title: {results.outline.meta_title}</div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white/5 p-3 rounded-xl">
+                    <p className="font-bold text-yellow-300 text-xs">📌 H2 Headings</p>
+                    <ul className="mt-1 space-y-0.5 text-xs">
+                      {results.outline.h2_headings?.slice(0, 5).map((h, i) => <li key={i}>{i+1}. {h}</li>)}
+                    </ul>
+                  </div>
+                  <div className="bg-white/5 p-3 rounded-xl">
+                    <p className="font-bold text-yellow-300 text-xs">❓ FAQ</p>
+                    <ul className="list-disc pl-4 text-xs space-y-0.5 text-gray-300 max-h-24 overflow-y-auto">
+                      {results.outline.faq?.slice(0, 5).map((f, i) => <li key={i}>{f}</li>)}
+                    </ul>
+                  </div>
+                </div>
+                {results.outline.local_angle && <div className="bg-green-500/10 p-2 rounded-xl border border-green-500/20 text-xs">🌍 {results.outline.local_angle}</div>}
+              </div>
+            )}
+
             {activeTab === 'trend' && results.trend && (
               <div className="space-y-3">
                 <div className="bg-white/5 p-4 rounded-xl">
@@ -542,33 +406,20 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-white/5 p-3 rounded-xl text-center">
-                    <div className="text-xl font-bold text-yellow-300">{results.peak_month}</div>
-                    <div className="text-[10px] text-gray-400">Peak Month</div>
-                  </div>
-                  <div className="bg-white/5 p-3 rounded-xl text-center">
-                    <div className="text-sm text-cyan-300">{results.peak_value}</div>
-                    <div className="text-[10px] text-gray-400">Peak Value</div>
-                  </div>
-                  <div className="bg-white/5 p-3 rounded-xl text-center">
-                    <div className="text-sm text-green-300">{results.best_publish_date}</div>
-                    <div className="text-[10px] text-gray-400">Publish Date</div>
-                  </div>
+                  <div className="bg-white/5 p-3 rounded-xl text-center"><div className="text-xl font-bold text-yellow-300">{results.peak_month}</div><div className="text-[10px] text-gray-400">Peak Month</div></div>
+                  <div className="bg-white/5 p-3 rounded-xl text-center"><div className="text-sm text-cyan-300">{results.peak_value}</div><div className="text-[10px] text-gray-400">Peak Value</div></div>
+                  <div className="bg-white/5 p-3 rounded-xl text-center"><div className="text-sm text-green-300">{results.best_publish_date}</div><div className="text-[10px] text-gray-400">Publish Date</div></div>
                 </div>
               </div>
             )}
 
-            {/* On-Page Results */}
             {activeTab === 'onpage' && results.checklist && (
               <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
                 {results.checklist.map((item, i) => (
                   <div key={i} className={`p-2.5 rounded-xl border flex justify-between items-center ${item.status === 'pass' ? 'border-green-500/30 bg-green-500/10' : 'border-red-500/30 bg-red-500/10'}`}>
                     <div className="flex items-center gap-2">
                       {item.status === 'pass' ? '✅' : '❌'}
-                      <div>
-                        <div className="font-medium text-xs">{item.check}</div>
-                        <div className="text-[10px] text-gray-400">{item.issue || '✅ All good'}</div>
-                      </div>
+                      <div><div className="font-medium text-xs">{item.check}</div><div className="text-[10px] text-gray-400">{item.issue || '✅ All good'}</div></div>
                     </div>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full ${item.status === 'pass' ? 'bg-green-500/20 text-green-300' : 'bg-red-500/20 text-red-300'}`}>
                       {item.status === 'pass' ? 'Pass' : 'Fix'}
@@ -582,7 +433,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* Plan Results */}
             {activeTab === 'plan' && results.plan && (
               <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
                 {results.plan.map((week, i) => (
@@ -599,7 +449,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* Niche Results */}
             {activeTab === 'niche' && results.niche && (
               <div className="space-y-3">
                 <div className="bg-purple-500/10 p-3 rounded-xl border border-purple-500/20">
@@ -609,21 +458,16 @@ export default function Home() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-white/5 p-3 rounded-xl">
                     <p className="font-bold text-yellow-300 text-sm">🏆 Competitors</p>
-                    <ul className="list-disc pl-4 text-sm mt-1">
-                      {results.niche.competitors?.map((c, i) => <li key={i}>{c}</li>)}
-                    </ul>
+                    <ul className="list-disc pl-4 text-sm mt-1">{results.niche.competitors?.map((c, i) => <li key={i}>{c}</li>)}</ul>
                   </div>
                   <div className="bg-white/5 p-3 rounded-xl">
                     <p className="font-bold text-purple-300 text-sm">💡 Insights</p>
-                    <ul className="list-disc pl-4 text-xs space-y-0.5 text-gray-300 mt-1">
-                      {results.niche.insights?.map((ins, i) => <li key={i}>{ins}</li>)}
-                    </ul>
+                    <ul className="list-disc pl-4 text-xs space-y-0.5 text-gray-300 mt-1">{results.niche.insights?.map((ins, i) => <li key={i}>{ins}</li>)}</ul>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Rank Results */}
             {activeTab === 'rank' && results.rank && (
               <div className="space-y-3">
                 <div className="grid grid-cols-3 gap-3">
@@ -649,7 +493,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* Brief Results */}
             {activeTab === 'brief' && results.brief && (
               <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                 <div className="bg-purple-500/10 p-3 rounded-xl border border-purple-500/20">
@@ -684,7 +527,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Empty State */}
         {!loading && !results && !error && (
           <div className="text-center py-16 text-gray-500">
             <div className="text-5xl mb-3">⚡</div>
