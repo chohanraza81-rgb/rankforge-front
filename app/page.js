@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { 
-  Loader2, CheckCircle, Target, TrendingUp, Zap, Sparkles, Crown,
+  Loader2, CheckCircle, Target, TrendingUp, Sparkles, Crown,
   ArrowRight, Copy, Search, Users, FileText, Link, Calendar, 
   ListChecks, Brain, Rocket, Crown as CrownIcon
 } from 'lucide-react';
@@ -31,6 +31,7 @@ export default function Home() {
   ];
 
   const handleGenerate = async () => {
+    // Validation
     if (activeTab === 'keyword' && !keyword.trim()) {
       setError('Please enter a keyword.');
       return;
@@ -95,10 +96,9 @@ export default function Home() {
         default: throw new Error('Invalid tab');
       }
 
-      const url = `${baseUrl}${endpoint}`;
-      console.log(`📡 Calling: ${url}`);
+      console.log(`📡 Calling: ${baseUrl}${endpoint}`);
 
-      const response = await fetch(url, {
+      const response = await fetch(`${baseUrl}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -499,19 +499,29 @@ export default function Home() {
               </div>
             )}
 
-            {/* Backlink Results */}
+            {/* Backlink Results - REAL DATA */}
             {activeTab === 'backlink' && results.backlinks && (
               <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
-                <div className="text-sm text-gray-400 mb-1">{results.backlinks.length} real backlink opportunities</div>
+                <div className="text-sm text-gray-400 mb-1">
+                  {results.backlinks.length} real backlink opportunities
+                  {results.source && <span className="text-xs text-cyan-400 ml-2">({results.source})</span>}
+                </div>
                 {results.backlinks.map((b, i) => (
-                  <div key={i} className="p-2.5 rounded-xl border border-white/10 bg-white/5 flex justify-between items-center">
-                    <div>
-                      <div className="font-medium text-cyan-300 text-sm">{b.domain}</div>
+                  <div key={i} className="p-2.5 rounded-xl border border-white/10 bg-white/5 flex flex-wrap justify-between items-center gap-1.5">
+                    <div className="flex-1">
+                      <div className="font-medium text-cyan-300 text-sm flex items-center gap-1.5">
+                        {b.domain}
+                        <span className="text-[10px] bg-purple-500/20 px-1.5 py-0.5 rounded-full">DA: {b.da}</span>
+                      </div>
                       <div className="text-[10px] text-gray-400">{b.link_type} • {b.reason}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-[10px] bg-purple-500/20 px-2 py-0.5 rounded">DA: {b.da}</div>
                       <div className="text-[10px] text-gray-400">{b.email}</div>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                        b.opportunity === 'High' ? 'bg-green-500/20 text-green-300' :
+                        b.opportunity === 'Medium' ? 'bg-yellow-500/20 text-yellow-300' :
+                        'bg-gray-500/20 text-gray-300'
+                      }`}>{b.opportunity || 'Medium'}</span>
                     </div>
                   </div>
                 ))}
